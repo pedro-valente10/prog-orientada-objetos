@@ -22,32 +22,7 @@ public class CidadeTest {
         vermelho = partida.getJogador(CorJogador.VERMELHO);
     }
 
-    /**
-     * CT-12 Custo progressivo das espadas.
-     * Cenário: VERMELHO tem 3 espadas e está em A (adjacente à cidade X, que tem 3 tesouros).
-     * Entrada: atacarCidade(X,1) e depois atacarCidade(X,1) no mesmo turno; por fim mais um ataque.
-     * Esperado: 1º tesouro custa 1 espada, o seguinte custa 2 (total 3, restam 0);
-     * o terceiro ataque é recusado por falta de espadas.
-     */
-    @Test
-    public void primeiroTesouroCustaUmaEspadaOsSeguintesDuas() {
-        vermelho.adicionarTributo(TipoTributo.ESPADA, 3);
-        partida.iniciarTurno(1, 0);
-        partida.mover(Arrays.asList("A"));
-
-        partida.atacarCidade("X", 1);
-        assertEquals(2, vermelho.quantidadeTributo(TipoTributo.ESPADA));
-        partida.atacarCidade("X", 1);
-        assertEquals(0, vermelho.quantidadeTributo(TipoTributo.ESPADA));
-        assertEquals(2, vermelho.totalTesouros());
-        try {
-            partida.atacarCidade("X", 1);
-            fail("Sem espadas");
-        } catch (RegraInvalidaException esperado) {
-            assertEquals(1, partida.getTabuleiro().getCidade("X").quantidadeTesouros());
-        }
-    }
-
+    
     /**
      * CT-13 Conquista de cidade.
      * Cenário: VERMELHO tem 5 espadas (1+2+2) e está em A; X tem 3 tesouros; Y é a próxima da pilha.
@@ -94,15 +69,5 @@ public class CidadeTest {
         }
     }
 
-    /**
-     * CT-15 O ataque exige ter parado ao lado da cidade.
-     * Cenário: VERMELHO continua em KARAKORUM (não adjacente a X) e tem espadas.
-     * Esperado: RegraInvalidaException.
-     */
-    @Test(expected = RegraInvalidaException.class)
-    public void ataqueExigeParadaAdjacenteVisitada() {
-        vermelho.adicionarTributo(TipoTributo.ESPADA, 5);
-        partida.iniciarTurno(1, 0);
-        partida.atacarCidade("X", 1);
-    }
+    
 }

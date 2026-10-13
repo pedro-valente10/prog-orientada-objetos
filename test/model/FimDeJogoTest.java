@@ -53,4 +53,30 @@ public class FimDeJogoTest {
             assertEquals(10, partida.getKurultai().getVotos(CorJogador.VERMELHO));
         }
     }
+
+    /**
+     * CT-29 O gatilho de fim só é ativado quando o Kurultai atinge o limite.
+     * Cenário: VERMELHO entrega tesouros ao conselheiro B; o conselho comporta 10 votos.
+     * Esperado: após 9 entregas a partida continua; a 10ª ativa o gatilho, sem encerrar imediatamente.
+     */
+    @Test
+    public void gatilhoDeFimSoAtivaQuandoKurultaiAtingeOLimite() {
+        Partida partida = Cenarios.partida(2);
+        partida.getJogador(CorJogador.VERMELHO).adicionarTesouro(TipoTesouro.PELES, 20);
+        partida.iniciarTurno(2, 0);
+        partida.mover(Arrays.asList("A", "B"));
+
+        for (int i = 0; i < 9; i++) {
+            partida.entregarTesouros("B", new HashMap<TipoTesouro, Integer>());
+        }
+        assertEquals(9, partida.getKurultai().getVotos(CorJogador.VERMELHO));
+        assertFalse(partida.isFimAcionado());
+        assertFalse(partida.isJogoEncerrado());
+
+        partida.entregarTesouros("B", new HashMap<TipoTesouro, Integer>());
+        assertEquals(10, partida.getKurultai().getVotos(CorJogador.VERMELHO));
+        assertTrue(partida.isFimAcionado());
+        assertFalse(partida.isJogoEncerrado());
+    }
+
 }

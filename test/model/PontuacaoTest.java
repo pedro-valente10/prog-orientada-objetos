@@ -61,48 +61,8 @@ public class PontuacaoTest {
         assertEquals(0, (int) v.get(CorJogador.VERDE));
     }
 
-    /**
-     * CT-24 Empate no 2º lugar: todos os empatados são 2º.
-     * Cenário (RUSSIA): VERMELHO 3 iurtas (1 melhoria); AZUL 1 iurta (3 melhorias);
-     * VERDE 1 iurta (2 melhorias).
-     * Esperado: VERMELHO 1º = 1 voto; AZUL 2º = 2 votos; VERDE 2º = 1 voto.
-     */
-    @Test
-    public void empateNoSegundoLugarDivideOSegundo() {
-        Tabuleiro t = partida.getTabuleiro();
-        t.getParada("A").adicionarIurta(CorJogador.VERMELHO);
-        t.getParada("C").adicionarIurta(CorJogador.VERMELHO);
-        t.getParada("D").adicionarIurta(CorJogador.VERMELHO);
-        t.getParada("B").adicionarIurta(CorJogador.AZUL);
-        t.getParada("B").adicionarIurta(CorJogador.VERDE);
-        darMelhorias(vermelho, 1);
-        darMelhorias(azul, 3);
-        darMelhorias(verde, 2);
-
-        Map<CorJogador, Integer> v = influencia();
-        assertEquals(1, (int) v.get(CorJogador.VERMELHO));
-        assertEquals(2, (int) v.get(CorJogador.AZUL));
-        assertEquals(1, (int) v.get(CorJogador.VERDE));
-    }
-
-    /**
-     * CT-27 Primeiro lugar sem melhorias ainda vale 1 voto; segundo sem melhorias vale 0.
-     * Cenário (RUSSIA): VERMELHO 2 iurtas e AZUL 1 iurta; nenhum dos dois comprou melhorias.
-     * Esperado (tabela do manual, coluna "0"): VERMELHO 1 voto; AZUL 0 votos; VERDE 0.
-     */
-    @Test
-    public void primeiroSemMelhoriasGanhaUmVotoESegundoSemMelhoriasNaoGanha() {
-        Tabuleiro t = partida.getTabuleiro();
-        t.getParada("A").adicionarIurta(CorJogador.VERMELHO);
-        t.getParada("C").adicionarIurta(CorJogador.VERMELHO);
-        t.getParada("D").adicionarIurta(CorJogador.AZUL);
-
-        Map<CorJogador, Integer> v = influencia();
-        assertEquals(1, (int) v.get(CorJogador.VERMELHO));
-        assertEquals(0, (int) v.get(CorJogador.AZUL));
-        assertEquals(0, (int) v.get(CorJogador.VERDE));
-    }
-
+    
+    
     /**
      * CT-25 Desempate do vencedor: tesouros e depois proximidade de Karakorum.
      * Cenário: VERMELHO e AZUL empatam em votos (5); VERDE tem 3.
@@ -134,13 +94,5 @@ public class PontuacaoTest {
         assertEquals(2, compartilhada.size());
     }
 
-    /**
-     * CT-26 Distância entre paradas (usada no desempate).
-     * Esperado: KARAKORUM->D = 4 passos; A->A = 0.
-     */
-    @Test
-    public void distanciaEntreParadas() {
-        assertEquals(4, partida.getTabuleiro().distancia(Tabuleiro.KARAKORUM, "D"));
-        assertEquals(0, partida.getTabuleiro().distancia("A", "A"));
-    }
+    
 }

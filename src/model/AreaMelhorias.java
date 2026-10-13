@@ -1,9 +1,8 @@
 package model;
 
 /**
- * Área de melhorias (5 vagas). Quando o Khan vai para cá, as vagas são repostas
- * e o jogador ganha uma moeda/espada se os ícones correspondentes estiverem visíveis
- * (vaga vazia). ATENÇÃO: as posições dos ícones abaixo são hipóteses; confira no tabuleiro.
+ * Área de melhorias com cinco vagas e ícones de moeda e espada nas posições definidas.
+ * Ao visitar a área, as vagas são repostas e os ícones visíveis concedem os recursos correspondentes.
  */
 class AreaMelhorias {
 

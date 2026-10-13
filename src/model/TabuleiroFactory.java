@@ -9,9 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Monta um tabuleiro SIMPLIFICADO (13 paradas, 8 províncias, 9 cidades) com as mesmas
- * regras do jogo. O mapa real deve ser transcrito do tabuleiro físico em iterações futuras
- * (o ideal é que a topologia venha de um arquivo, não de código).
+ * Monta um tabuleiro simplificado com 13 paradas, 8 províncias e 9 cidades.
  */
 class TabuleiroFactory {
 
@@ -82,7 +80,8 @@ class TabuleiroFactory {
                 Regiao.CHINA, Regiao.CHINA, Regiao.CHINA, Regiao.RUSSIA };
         Map<Regiao, Integer> contador = new HashMap<>();
         for (int i = 0; i < nomes.length; i++) {
-            int j = contador.merge(regs[i], 1, Integer::sum) - 1; // 0, 1, 2
+            int j = contador.getOrDefault(regs[i], 0); // 0, 1, 2
+            contador.put(regs[i], j + 1);
             Set<String> adj = new HashSet<>(
                     Arrays.asList(idParada(regs[i], j + 1), idParada(regs[i], j + 2)));
             Cidade cidade = new Cidade(nomes[i], regs[i], adj);

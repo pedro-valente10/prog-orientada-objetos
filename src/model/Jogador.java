@@ -32,10 +32,16 @@ class Jogador {
     }
 
     void adicionarTributo(TipoTributo tipo, int quantidade) {
-        tributos.merge(tipo, quantidade, Integer::sum);
+        if (tipo == null || quantidade < 0) {
+            throw new RegraInvalidaException("Tipo ou quantidade de tributo inválido.");
+        }
+        tributos.put(tipo, tributos.getOrDefault(tipo, 0) + quantidade);
     }
 
     void gastarTributo(TipoTributo tipo, int quantidade) {
+        if (tipo == null || quantidade < 0) {
+            throw new RegraInvalidaException("Tipo ou quantidade de tributo inválido.");
+        }
         if (quantidadeTributo(tipo) < quantidade) {
             throw new RegraInvalidaException("Faltam peças de tributo: " + tipo + ".");
         }
@@ -56,7 +62,10 @@ class Jogador {
     }
 
     void adicionarTesouro(TipoTesouro tipo, int quantidade) {
-        tesouros.merge(tipo, quantidade, Integer::sum);
+        if (tipo == null || quantidade < 0) {
+            throw new RegraInvalidaException("Tipo ou quantidade de tesouro inválido.");
+        }
+        tesouros.put(tipo, tesouros.getOrDefault(tipo, 0) + quantidade);
     }
 
     boolean possuiTesouros(Map<TipoTesouro, Integer> pedido) {
@@ -69,6 +78,14 @@ class Jogador {
     }
 
     void removerTesouros(Map<TipoTesouro, Integer> pedido) {
+        if (pedido == null) {
+            throw new RegraInvalidaException("A entrega de tesouros é obrigatória.");
+        }
+        for (Map.Entry<TipoTesouro, Integer> e : pedido.entrySet()) {
+            if (e.getKey() == null || e.getValue() == null || e.getValue() < 0) {
+                throw new RegraInvalidaException("A entrega contém um tesouro ou quantidade inválida.");
+            }
+        }
         if (!possuiTesouros(pedido)) {
             throw new RegraInvalidaException("Tesouros insuficientes.");
         }
@@ -93,6 +110,6 @@ class Jogador {
     /** Paga 2 moedas e adiciona uma melhoria na coluna da região. */
     void comprarMelhoria(Regiao coluna) {
         gastarTributo(TipoTributo.MOEDA, CUSTO_MELHORIA);
-        melhorias.merge(coluna, 1, Integer::sum);
+        melhorias.put(coluna, melhorias.getOrDefault(coluna, 0) + 1);
     }
 }

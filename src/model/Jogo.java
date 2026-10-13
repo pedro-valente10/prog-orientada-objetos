@@ -7,13 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * API pública do componente Model (única classe pública além da exceção).
- * View e Controller só falam com o Model por aqui, usando tipos simples
- * (String, int, List, Map) — nunca as classes internas do jogo.
- *
- * Na 3ª iteração esta classe será transformada em Singleton + Façade.
- */
+/** API pública do componente Model. */
 public class Jogo {
 
     private final Partida partida;
@@ -60,7 +54,7 @@ public class Jogo {
         partida.entregarTesouros(paradaId, convertida);
     }
 
-    // ---- consultas para View/Controller ----
+    // ---- consultas ----
     public String getPosicao(String cor) { return partida.getJogador(CorJogador.valueOf(cor)).getPosicao(); }
     public int getVotos(String cor) { return partida.getKurultai().getVotos(CorJogador.valueOf(cor)); }
     public int getTributos(String cor, String tipo) {

@@ -107,7 +107,7 @@ class Partida {
     // ---------------------------------------------------------------- turno
     /**
      * Inicia o turno do jogador da vez. Os números de cavalos (movimentos) e punhos
-     * (coletas de tributo) vêm da coluna de ativação escolhida (decisão do Controller).
+     * (coletas de tributo) vêm da coluna de ativação escolhida .
      */
     void iniciarTurno(int cavalos, int punhos) {
         if (jogoEncerrado) {
@@ -115,6 +115,9 @@ class Partida {
         }
         if (turnoAtivo) {
             throw new RegraInvalidaException("O turno anterior ainda não foi encerrado.");
+        }
+        if (cavalos < 0 || punhos < 0) {
+            throw new RegraInvalidaException("Movimentos e ações de tributo não podem ser negativos.");
         }
         turnoAtivo = true;
         movimentosRestantes = cavalos;
@@ -235,6 +238,9 @@ class Partida {
     /** Coloca o Khan em uma província Khan ou na área de melhorias (ação obrigatória da coluna). */
     void posicionarKhan(String local) {
         exigirTurnoAtivo();
+        if (local == null) {
+            throw new RegraInvalidaException("O local do Khan é obrigatório.");
+        }
         boolean naArea = Khan.AREA_MELHORIAS.equals(local);
         if (!naArea && !tabuleiro.getProvincia(local).isProvinciaKhan()) {
             throw new RegraInvalidaException(local + " não é uma província Khan.");
@@ -327,10 +333,16 @@ class Partida {
      */
     void comprarMelhoria(Regiao coluna, int vagaArea) {
         exigirTurnoAtivo();
+        if (coluna == null) {
+            throw new RegraInvalidaException("A coluna da melhoria é obrigatória.");
+        }
+        if (vagaArea < -1 || vagaArea >= AreaMelhorias.VAGAS) {
+            throw new RegraInvalidaException("Posição de melhoria inválida.");
+        }
         if (vagaArea >= 0 && !area.estaOcupada(vagaArea)) {
             throw new RegraInvalidaException("A vaga " + vagaArea + " está vazia.");
         }
-        jogadorAtual().comprarMelhoria(coluna); // lança exceção se faltar moeda
+        jogadorAtual().comprarMelhoria(coluna);
         if (vagaArea >= 0) {
             area.remover(vagaArea);
         }
@@ -363,7 +375,7 @@ class Partida {
     }
 
     // ---------------------------------------------------------------- resultado
-    /** Votos do Kurultai + votos de influência regional (cartas de conselheiro secretas ficam p/ depois). */
+    /** Votos finais: votos do Kurultai somados aos votos de influência regional. */
     Map<CorJogador, Integer> votosFinais() {
         Map<CorJogador, Integer> influencia = Pontuacao.votosDeInfluencia(tabuleiro, jogadores.values());
         Map<CorJogador, Integer> total = new HashMap<>();

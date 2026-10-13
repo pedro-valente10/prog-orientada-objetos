@@ -67,9 +67,11 @@ final class Pontuacao {
                 }
                 int melhorias = j.quantidadeMelhorias(regiao);
                 if (n == maior) {
-                    votos.merge(j.getCor(), valor(VOTOS_PRIMEIRO, melhorias), Integer::sum);
+                    CorJogador cor = j.getCor();
+                    votos.put(cor, votos.getOrDefault(cor, 0) + valor(VOTOS_PRIMEIRO, melhorias));
                 } else if (n == segundo) {
-                    votos.merge(j.getCor(), valor(VOTOS_SEGUNDO, melhorias), Integer::sum);
+                    CorJogador cor = j.getCor();
+                    votos.put(cor, votos.getOrDefault(cor, 0) + valor(VOTOS_SEGUNDO, melhorias));
                 }
             }
         }

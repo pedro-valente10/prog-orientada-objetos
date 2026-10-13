@@ -41,7 +41,7 @@ class Conselheiro {
     static Conselheiro tresEspecificos(String id, TipoTesouro a, TipoTesouro b, TipoTesouro c) {
         Map<TipoTesouro, Integer> exigencia = new HashMap<>();
         for (TipoTesouro t : new TipoTesouro[] { a, b, c }) {
-            exigencia.merge(t, 1, Integer::sum);
+            exigencia.put(t, exigencia.getOrDefault(t, 0) + 1);
         }
         return new Conselheiro(id, exigencia, 0, 2);
     }
@@ -56,14 +56,20 @@ class Conselheiro {
      * @return número de votos ganhos
      */
     int entregar(Jogador jogador, Map<TipoTesouro, Integer> oferta) {
+        if (jogador == null) {
+            throw new RegraInvalidaException("O jogador é obrigatório.");
+        }
         Map<TipoTesouro, Integer> pagamento;
         if (exigenciaFixa != null) {
             pagamento = exigenciaFixa;
         } else {
             pagamento = (oferta == null) ? new HashMap<TipoTesouro, Integer>() : oferta;
             int total = 0;
-            for (int q : pagamento.values()) {
-                total += q;
+            for (Map.Entry<TipoTesouro, Integer> entrada : pagamento.entrySet()) {
+                if (entrada.getKey() == null || entrada.getValue() == null || entrada.getValue() < 0) {
+                    throw new RegraInvalidaException("A oferta contém um tesouro ou quantidade inválida.");
+                }
+                total += entrada.getValue();
             }
             if (total != quantidadeQualquer) {
                 throw new RegraInvalidaException(

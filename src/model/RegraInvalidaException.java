@@ -1,8 +1,7 @@
 package model;
 
 /**
- * Lançada quando uma ação viola as regras do jogo.
- * É pública porque o Controller precisa capturá-la; não é um "elemento básico do jogo".
+ * Lançada quando uma ação viola as regras do jogo.
  */
 public class RegraInvalidaException extends RuntimeException {
 
