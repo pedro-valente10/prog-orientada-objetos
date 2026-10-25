@@ -56,6 +56,23 @@ class Figuras {
         return img;
     }
 
+    static BufferedImage criarYurt() {
+        BufferedImage img = new BufferedImage(24, 24, BufferedImage.TYPE_INT_ARGB);
+        java.awt.Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        java.awt.Polygon teto = new java.awt.Polygon(
+                new int[] { 2, 12, 22 }, new int[] { 11, 2, 11 }, 3);
+        g.setColor(new Color(245, 226, 175));
+        g.fill(teto);
+        g.fillRoundRect(3, 10, 18, 12, 3, 3);
+        g.setColor(new Color(87, 54, 39));
+        g.setStroke(new BasicStroke(2f));
+        g.draw(teto);
+        g.drawRoundRect(3, 10, 18, 12, 3, 3);
+        g.dispose();
+        return img;
+    }
+
     static BufferedImage[] criarFacesDosDados() {
         BufferedImage[] faces = new BufferedImage[6];
         for (int valor = 1; valor <= 6; valor++) {

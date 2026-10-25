@@ -15,7 +15,7 @@ public class Main {
             @Override
             public void run() {
                 Jogo jogo = new Jogo(NUMERO_JOGADORES);
-                JanelaJogo janela = new JanelaJogo(jogo.getJogadores());
+                JanelaJogo janela = new JanelaJogo(jogo);
                 new Controlador(jogo, janela).iniciar();
             }
         });

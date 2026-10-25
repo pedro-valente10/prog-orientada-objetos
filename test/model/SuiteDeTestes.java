@@ -11,7 +11,8 @@ import org.junit.runners.Suite;
     CidadeTest.class,
     ConselheiroKurultaiTest.class,
     FimDeJogoTest.class,
-    PontuacaoTest.class
+    PontuacaoTest.class,
+    SegundaIteracaoTest.class
 })
 public class SuiteDeTestes {
 }

@@ -62,6 +62,9 @@ class Tabuleiro {
         return Collections.unmodifiableCollection(cidadesReveladas.values());
     }
 
+    Collection<Parada> getParadas() { return Collections.unmodifiableCollection(paradas.values()); }
+    Collection<Provincia> getProvincias() { return Collections.unmodifiableCollection(provincias.values()); }
+
     /** Vira a próxima cidade da pilha; retorna null se não há mais cidades. */
     Cidade revelarProximaCidade() {
         Cidade c = pilhaCidades.pollFirst();

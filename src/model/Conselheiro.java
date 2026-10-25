@@ -49,26 +49,33 @@ class Conselheiro {
     String getId() { return id; }
     CorJogador getPrimeiroEntregador() { return primeiroEntregador; }
 
-    /**
-     * Realiza uma entrega. Para exigência fixa, "oferta" é ignorada; para
-     * "3 quaisquer", "oferta" diz quais tesouros o jogador entrega.
-     *
-     * @return número de votos ganhos
-     */
+    /** Compatibilidade com chamadas internas e cenários antigos. */
     int entregar(Jogador jogador, Map<TipoTesouro, Integer> oferta) {
+        return entregar(jogador, oferta, new HashMap<TipoTesouro, Integer>());
+    }
+
+    /** Paga com tesouros reais e, se disponíveis, virtuais da coluna ativada. */
+    int entregar(Jogador jogador, Map<TipoTesouro, Integer> oferta,
+                 Map<TipoTesouro, Integer> virtuais) {
         if (jogador == null) {
             throw new RegraInvalidaException("O jogador é obrigatório.");
         }
+        if (virtuais == null) throw new RegraInvalidaException("Recursos virtuais inválidos.");
+        if (oferta != null) {
+            for (Map.Entry<TipoTesouro, Integer> entrada : oferta.entrySet()) {
+                if (entrada.getKey() == null || entrada.getValue() == null || entrada.getValue() < 0)
+                    throw new RegraInvalidaException("A oferta contém um tesouro ou quantidade inválida.");
+            }
+        }
         Map<TipoTesouro, Integer> pagamento;
         if (exigenciaFixa != null) {
+            if (oferta != null && !oferta.isEmpty() && !oferta.equals(exigenciaFixa))
+                throw new RegraInvalidaException("A oferta não atende à exigência fixa.");
             pagamento = exigenciaFixa;
         } else {
             pagamento = (oferta == null) ? new HashMap<TipoTesouro, Integer>() : oferta;
             int total = 0;
             for (Map.Entry<TipoTesouro, Integer> entrada : pagamento.entrySet()) {
-                if (entrada.getKey() == null || entrada.getValue() == null || entrada.getValue() < 0) {
-                    throw new RegraInvalidaException("A oferta contém um tesouro ou quantidade inválida.");
-                }
                 total += entrada.getValue();
             }
             if (total != quantidadeQualquer) {
@@ -76,10 +83,20 @@ class Conselheiro {
                         "Este conselheiro exige exatamente " + quantidadeQualquer + " tesouros.");
             }
         }
-        if (!jogador.possuiTesouros(pagamento)) {
+        Map<TipoTesouro, Integer> pagamentoReal = new HashMap<>();
+        Map<TipoTesouro, Integer> usadosVirtuais = new HashMap<>();
+        for (Map.Entry<TipoTesouro, Integer> entrada : pagamento.entrySet()) {
+            TipoTesouro tipo = entrada.getKey();
+            int virtual = Math.min(entrada.getValue(), virtuais.getOrDefault(tipo, 0));
+            usadosVirtuais.put(tipo, virtual);
+            pagamentoReal.put(tipo, entrada.getValue() - virtual);
+        }
+        if (!jogador.possuiTesouros(pagamentoReal)) {
             throw new RegraInvalidaException("O jogador não possui os tesouros exigidos.");
         }
-        jogador.removerTesouros(pagamento);
+        jogador.removerTesouros(pagamentoReal);
+        for (Map.Entry<TipoTesouro, Integer> entrada : usadosVirtuais.entrySet())
+            virtuais.put(entrada.getKey(), virtuais.getOrDefault(entrada.getKey(), 0) - entrada.getValue());
         if (primeiroEntregador == null) {
             primeiroEntregador = jogador.getCor();
         }
