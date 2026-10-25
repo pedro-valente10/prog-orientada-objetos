@@ -16,6 +16,8 @@ class Parada {
     private final Regiao regiao;      // null em Karakorum
     private final boolean dupla;
     private final boolean karakorum;
+    private final double x;
+    private final double y;
     private final Set<String> vizinhas = new HashSet<>();
     private final Set<String> provinciasAdjacentes = new HashSet<>();
     private final List<CorJogador> iurtas = new ArrayList<>();
@@ -23,16 +25,24 @@ class Parada {
     private Conselheiro conselheiro;
 
     Parada(String id, Regiao regiao, boolean dupla, boolean karakorum) {
+        this(id, regiao, dupla, karakorum, Double.NaN, Double.NaN);
+    }
+
+    Parada(String id, Regiao regiao, boolean dupla, boolean karakorum, double x, double y) {
         this.id = id;
         this.regiao = regiao;
         this.dupla = dupla;
         this.karakorum = karakorum;
+        this.x = x;
+        this.y = y;
     }
 
     String getId() { return id; }
     Regiao getRegiao() { return regiao; }
     boolean isDupla() { return dupla; }
     boolean isKarakorum() { return karakorum; }
+    double getX() { return x; }
+    double getY() { return y; }
     Conselheiro getConselheiro() { return conselheiro; }
     void setConselheiro(Conselheiro conselheiro) { this.conselheiro = conselheiro; }
 
@@ -54,6 +64,7 @@ class Parada {
     void adicionarPeao(CorJogador cor) { peoes.add(cor); }
     void removerPeao(CorJogador cor) { peoes.remove(cor); }
     int quantidadePeoes() { return peoes.size(); }
+    List<CorJogador> getPeoes() { return Collections.unmodifiableList(peoes); }
 
     // ---- iurtas ----
     private int capacidadeIurtas() {
@@ -66,6 +77,7 @@ class Parada {
     boolean podeReceberIurta() { return iurtas.size() < capacidadeIurtas(); }
     void adicionarIurta(CorJogador cor) { iurtas.add(cor); }
     boolean temIurta(CorJogador cor) { return iurtas.contains(cor); }
+    List<CorJogador> getIurtas() { return Collections.unmodifiableList(iurtas); }
 
     int contarIurtas(CorJogador cor) {
         int n = 0;

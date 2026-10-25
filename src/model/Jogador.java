@@ -12,7 +12,7 @@ class Jogador {
     private final CorJogador cor;
     private final Map<TipoTributo, Integer> tributos = new HashMap<>();
     private final Map<TipoTesouro, Integer> tesouros = new HashMap<>();
-    private final Map<Regiao, Integer> melhorias = new HashMap<>();
+    private final TabuleiroJogador tabuleiroIndividual = new TabuleiroJogador();
     private int iurtasDisponiveis = MAX_IURTAS;
     private String posicao;
 
@@ -25,6 +25,7 @@ class Jogador {
     String getPosicao() { return posicao; }
     void setPosicao(String posicao) { this.posicao = posicao; }
     int getIurtasDisponiveis() { return iurtasDisponiveis; }
+    TabuleiroJogador getTabuleiroIndividual() { return tabuleiroIndividual; }
 
     // ---- tributos ----
     int quantidadeTributo(TipoTributo tipo) {
@@ -104,12 +105,17 @@ class Jogador {
 
     // ---- melhorias ----
     int quantidadeMelhorias(Regiao coluna) {
-        return melhorias.getOrDefault(coluna, 0);
+        return tabuleiroIndividual.quantidadeMelhorias(coluna);
     }
 
-    /** Paga 2 moedas e adiciona uma melhoria na coluna da região. */
+    /** Compatibilidade com os cenários de unidade da primeira iteração. */
     void comprarMelhoria(Regiao coluna) {
+        Coluna destino = Coluna.valueOf(coluna.name());
+        if (!tabuleiroIndividual.temEspaco(destino))
+            throw new RegraInvalidaException("Coluna de melhorias cheia.");
         gastarTributo(TipoTributo.MOEDA, CUSTO_MELHORIA);
-        melhorias.put(coluna, melhorias.getOrDefault(coluna, 0) + 1);
+        tabuleiroIndividual.colocar(destino,
+                new Melhoria(-1 - tabuleiroIndividual.quantidadeMelhorias(destino),
+                        coluna, Melhoria.Tipo.CAVALOS, null));
     }
 }
