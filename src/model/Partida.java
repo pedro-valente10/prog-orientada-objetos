@@ -80,6 +80,7 @@ class Partida {
     Kurultai getKurultai() { return kurultai; }
     Jogador getJogador(CorJogador cor) { return jogadores.get(cor); }
     CorJogador jogadorDaVez() { return ordem.get(indiceVez); }
+    List<CorJogador> getOrdem() { return Collections.unmodifiableList(ordem); }
     boolean isFimAcionado() { return fimAcionado; }
     boolean isJogoEncerrado() { return jogoEncerrado; }
     int getMovimentosRestantes() { return movimentosRestantes; }

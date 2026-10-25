@@ -28,6 +28,15 @@ public class Jogo {
         this.partida = new Partida(cores, TabuleiroFactory.criarTabuleiroBasico(), semente);
     }
 
+    /** Cores dos jogadores, na ordem dos turnos. */
+    public List<String> getJogadores() {
+        List<String> nomes = new ArrayList<>();
+        for (CorJogador c : partida.getOrdem()) {
+            nomes.add(c.name());
+        }
+        return Collections.unmodifiableList(nomes);
+    }
+
     // ---- turno ----
     public String getJogadorDaVez() { return partida.jogadorDaVez().name(); }
     public void iniciarTurno(int cavalos, int punhos) { partida.iniciarTurno(cavalos, punhos); }
