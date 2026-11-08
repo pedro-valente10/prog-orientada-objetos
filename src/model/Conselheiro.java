@@ -48,6 +48,8 @@ class Conselheiro {
 
     String getId() { return id; }
     CorJogador getPrimeiroEntregador() { return primeiroEntregador; }
+    int getVotosPorEntrega() { return votosPorEntrega; }
+    int getQuantidadeQualquer() { return quantidadeQualquer; }
 
     /** Compatibilidade com chamadas internas e cenários antigos. */
     int entregar(Jogador jogador, Map<TipoTesouro, Integer> oferta) {

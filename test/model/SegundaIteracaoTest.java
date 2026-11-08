@@ -209,7 +209,8 @@ public class SegundaIteracaoTest {
     }
 
     @Test public void mapaPublicoTemPontosLigadosESimetricos() {
-        Jogo jogo = new Jogo(3, 2L);
+        Jogo jogo = Jogo.getInstance();
+        jogo.novaPartida(3, 2L);
         List<ParadaInfo> paradas = jogo.getParadas();
         assertEquals(34, paradas.size());
         Set<String> ids = new HashSet<>();

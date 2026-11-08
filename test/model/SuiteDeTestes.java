@@ -12,7 +12,8 @@ import org.junit.runners.Suite;
     ConselheiroKurultaiTest.class,
     FimDeJogoTest.class,
     PontuacaoTest.class,
-    SegundaIteracaoTest.class
+    SegundaIteracaoTest.class,
+    TerceiraIteracaoTest.class
 })
 public class SuiteDeTestes {
 }

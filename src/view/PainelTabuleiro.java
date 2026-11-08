@@ -20,14 +20,18 @@ import java.util.Set;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
+import model.Jogo;
+import model.ObservadoIF;
+import model.ObservadorIF;
 import model.ParadaInfo;
 
 /** Fotografia do tabuleiro com o grafo jogável destacado e derivado do Model. */
-class PainelTabuleiro extends JPanel {
+class PainelTabuleiro extends JPanel implements ObservadorIF {
     private static final long serialVersionUID = 1L;
     static final int LARGURA = 850;
     static final int ALTURA = 854;
 
+    private final Jogo jogo;
     private final BufferedImage imagemTabuleiro;
     private final Map<String, BufferedImage> piaos = new HashMap<>();
     private final BufferedImage yurt = Figuras.criarYurt();
@@ -35,7 +39,8 @@ class PainelTabuleiro extends JPanel {
     private Set<String> alcancaveis = new HashSet<>();
     private String jogadorDaVez;
 
-    PainelTabuleiro(List<String> jogadores) {
+    PainelTabuleiro(Jogo jogo) {
+        this.jogo = jogo;
         setPreferredSize(new Dimension(LARGURA, ALTURA));
         try {
             java.io.InputStream entrada = PainelTabuleiro.class.getResourceAsStream("img/tabuleiro.jpg");
@@ -50,15 +55,21 @@ class PainelTabuleiro extends JPanel {
         } catch (IOException e) {
             throw new IllegalStateException("Não foi possível carregar view/img/tabuleiro.jpg", e);
         }
-        for (String jogador : jogadores)
+        for (String jogador : jogo.getJogadores())
             piaos.put(jogador, Figuras.criarPiao(Figuras.corDoJogador(jogador)));
+        carregarEstado();
     }
 
-    void setEstado(List<ParadaInfo> novasParadas, Set<String> novosAlcancaveis, String vez) {
-        paradas = new ArrayList<>(novasParadas);
-        alcancaveis = new HashSet<>(novosAlcancaveis);
-        jogadorDaVez = vez;
+    /** Observer: sempre que a partida muda (peão movido, iurta construída...), relê o mapa e redesenha. */
+    @Override public void notify(ObservadoIF observado) {
+        carregarEstado();
         repaint();
+    }
+
+    private void carregarEstado() {
+        paradas = new ArrayList<>(jogo.getParadas());
+        alcancaveis = new HashSet<>(jogo.getParadasAlcancaveis());
+        jogadorDaVez = jogo.getJogadorDaVez();
     }
 
     String paradaEm(int x, int y) {
@@ -119,6 +130,13 @@ class PainelTabuleiro extends JPanel {
             int larguraTexto = g2.getFontMetrics().stringWidth(rotulo);
             g2.drawString(rotulo, x - larguraTexto / 2, y + 3);
 
+            if (parada.getConselheiro() != null) {
+                g2.setColor(new Color(214, 120, 40));
+                g2.fillRoundRect(x + raio - 6, y - raio - 4, 16, 14, 5, 5);
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("SansSerif", Font.BOLD, 10));
+                g2.drawString("C", x + raio - 1, y - raio + 7);
+            }
             for (int i = 0; i < parada.getIurtas().size(); i++)
                 g2.drawImage(yurt, x - 8 + i * 14, y - raio - 15, 17, 17, null);
             List<String> ocupantes = parada.getPeoes();
@@ -139,7 +157,7 @@ class PainelTabuleiro extends JPanel {
         g2.fillRoundRect(10, ALTURA - 30, 320, 23, 8, 8);
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("SansSerif", Font.BOLD, 12));
-        g2.drawString("Círculos e rotas claros: trechos jogáveis", 19, ALTURA - 14);
+        g2.drawString("Amarelo: alcançável | C: conselheiro", 19, ALTURA - 14);
         g2.dispose();
     }
 

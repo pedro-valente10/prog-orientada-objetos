@@ -13,6 +13,7 @@ public final class ParadaInfo {
     private final List<String> vizinhas;
     private final List<String> peoes;
     private final List<String> iurtas;
+    private final ConselheiroInfo conselheiro;
 
     ParadaInfo(Parada parada) {
         id = parada.getId();
@@ -25,6 +26,7 @@ public final class ParadaInfo {
         iurtas = new ArrayList<>();
         for (CorJogador cor : parada.getPeoes()) peoes.add(cor.name());
         for (CorJogador cor : parada.getIurtas()) iurtas.add(cor.name());
+        conselheiro = parada.getConselheiro() == null ? null : new ConselheiroInfo(parada.getConselheiro());
     }
 
     private static List<String> copiarOrdenado(Set<String> originais) {
@@ -41,4 +43,6 @@ public final class ParadaInfo {
     public List<String> getVizinhas() { return vizinhas; }
     public List<String> getPeoes() { return Collections.unmodifiableList(peoes); }
     public List<String> getIurtas() { return Collections.unmodifiableList(iurtas); }
+    /** Conselheiro desta parada, ou null se não houver. */
+    public ConselheiroInfo getConselheiro() { return conselheiro; }
 }

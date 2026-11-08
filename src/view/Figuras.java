@@ -7,6 +7,9 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 
+import model.Coluna;
+import model.Melhoria;
+
 /**
  * Gera, em memória, as imagens dos piões e das faces dos dados (não há arquivos de imagem
  * dessas peças). Elas são exibidas depois com Graphics2D.drawImage().
@@ -29,6 +32,31 @@ class Figuras {
             default:         return Color.GRAY;
         }
     }
+
+    /** Cor de fundo das colunas do tabuleiro individual e das peças de melhoria. */
+    static Color corColuna(Coluna coluna) {
+        switch (coluna) {
+            case CHINA: return new Color(213, 120, 117);
+            case PERSIA: return new Color(133, 185, 125);
+            case RUSSIA: return new Color(231, 194, 108);
+            default: return new Color(219, 224, 234);
+        }
+    }
+
+    static String nomePeca(Melhoria peca) {
+        switch (peca.getTipo()) {
+            case CAVALOS: return "+2 cavalos";
+            case PUNHO: return "+1 punho";
+            case MOEDA: return "moeda virtual";
+            case ESPADA: return "espada virtual";
+            case YURT: return "yurt virtual";
+            case TESOURO: return "tes. " + peca.getTesouro();
+            default: return peca.getTipo().name();
+        }
+    }
+
+    /** Três primeiras letras de um tipo de tesouro (PELES -> PEL). */
+    static String abreviar(String tipo) { return tipo.substring(0, 3); }
 
     static BufferedImage criarPiao(Color cor) {
         BufferedImage img = new BufferedImage(LARGURA_PIAO, ALTURA_PIAO, BufferedImage.TYPE_INT_ARGB);

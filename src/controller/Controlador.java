@@ -2,119 +2,207 @@ package controller;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.HashSet;
-import java.util.Set;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.Map;
 
 import model.Coluna;
+import model.ConselheiroInfo;
 import model.Jogo;
 import model.Melhoria;
 import model.ParadaInfo;
 import model.RegraInvalidaException;
 import view.JanelaJogo;
 
-/** Traduz cliques em comandos do Model e atualiza ambas as áreas da View. */
+/**
+ * Controller: organiza a sequência de eventos de uma partida (ativar coluna, mover, agir,
+ * encerrar turno, fim de jogo) traduzindo cliques em comandos para a fachada {@link Jogo}.
+ *
+ * Não desenha nada: a View se atualiza sozinha porque é observadora do Jogo (padrão Observer).
+ * O Controller só guarda o que é seu, o modo de clique em andamento, e controla quando a
+ * partida avança de fase.
+ */
 public class Controlador {
+
+    /** O que o próximo clique em uma parada do mapa significa. */
+    private enum Modo { MOVER, YURT, ENTREGAR }
+
     private final Jogo jogo;
     private final JanelaJogo janela;
+    private Modo modo = Modo.MOVER;
+    private boolean fimAcionadoAvisado;
+    private boolean fimDeJogoExibido;
 
     public Controlador(Jogo jogo, JanelaJogo janela) {
         this.jogo = jogo;
         this.janela = janela;
         janela.addOuvinteTabuleiro(new OuvinteTabuleiro());
         janela.addOuvinteControle(new OuvinteControle());
-        atualizarVisao();
+        janela.addOuvinteCartela(new OuvinteCartela());
+        janela.addOuvinteMelhorias(new OuvinteMelhorias());
+        janela.addOuvinteFechamentoCartela(new FechamentoCartela());
+        janela.addOuvinteFechamentoMelhorias(new FechamentoMelhorias());
     }
 
-    public void iniciar() { janela.setVisible(true); }
+    /** Abre a janela principal e a cartela do primeiro jogador: a partida começa aqui. */
+    public void iniciar() {
+        janela.setVisible(true);
+        janela.posicionarJanelas();
+        jogo.exibirCartela(jogo.getJogadorDaVez());
+        janela.mostrarMensagem("Vez de " + jogo.getJogadorDaVez() + ". " + proximoPasso());
+    }
 
+    // ------------------------------------------------------------------ ações dos botões
     private void executarAcao(String acao) {
         if (acao == null) return;
-        if (acao.startsWith("VER:")) {
-            janela.exibirJogador(acao.substring(4));
-            return;
-        }
         String[] partes = acao.split(":", 2);
         String operacao = partes[0];
         String argumento = partes.length > 1 ? partes[1] : "";
         try {
-            String mensagem;
-            if ("COLUNA".equals(operacao)) {
+            if ("VER".equals(operacao)) {
+                jogo.exibirCartela(argumento);
+            } else if ("CARTELA".equals(operacao)) {
+                String cor = jogo.getCartelaExibida();
+                jogo.exibirCartela(cor == null ? jogo.getJogadorDaVez() : cor);
+            } else if ("MELHORIAS".equals(operacao)) {
+                jogo.exibirMelhorias();
+            } else if ("COLUNA".equals(operacao)) {
                 jogo.ativarColuna(Coluna.valueOf(argumento));
-                mensagem = "Coluna " + argumento + " ativada.";
+                definirModo(Modo.MOVER);
+                concluir("Coluna " + argumento + " ativada.");
             } else if ("FIM".equals(operacao)) {
                 jogo.encerrarTurno();
-                janela.setModoYurt(false);
-                mensagem = "Turno encerrado. Vez de " + jogo.getJogadorDaVez() + ".";
+                definirModo(Modo.MOVER);
+                concluir("Turno encerrado. Vez de " + jogo.getJogadorDaVez() + ".");
             } else if ("YURT".equals(operacao)) {
-                if (!jogo.isTurnoAtivo())
-                    throw new RegraInvalidaException("Ative uma coluna primeiro.");
-                janela.setModoYurt(!janela.isModoYurt());
-                mensagem = janela.isModoYurt() ? "Clique uma parada visitada para construir yurt."
-                        : "Modo yurt desligado.";
+                alternarModo(Modo.YURT, "Clique em uma parada visitada para construir a yurt.");
+            } else if ("ENTREGAR".equals(operacao)) {
+                alternarModo(Modo.ENTREGAR, "Clique em uma parada visitada que tenha conselheiro.");
             } else if ("MELHORIA".equals(operacao)) {
-                int vaga = Integer.parseInt(argumento);
-                Melhoria peca;
-                if (jogo.getBonusBrancosPendentes(jogo.getJogadorDaVez()) > 0) {
-                    peca = jogo.receberBonusBranco(vaga);
-                    mensagem = "Melhoria branca gratuita: " + peca + ".";
-                } else {
-                    peca = jogo.comprarMelhoria(vaga);
-                    mensagem = "Melhoria comprada: " + peca + ".";
-                }
+                comprarOuReceberMelhoria(Integer.parseInt(argumento));
             } else if ("KHAN".equals(operacao)) {
                 jogo.posicionarKhan(argumento);
-                mensagem = "Khan colocado em " + argumento + ".";
+                concluir("Khan colocado em " + argumento + ".");
             } else if ("COLETA".equals(operacao)) {
                 jogo.coletarTributo(argumento);
-                mensagem = "Tributo coletado em " + argumento + ".";
+                concluir("Tributo coletado em " + argumento + ".");
             } else if ("ATAQUE".equals(operacao)) {
                 jogo.atacarCidade(argumento, 1);
-                mensagem = "Um tesouro retirado de " + argumento + ".";
-            } else {
-                return;
+                concluir("Um tesouro retirado de " + argumento + ".");
             }
-            atualizarVisao();
-            janela.mostrarMensagem(mensagem);
         } catch (RegraInvalidaException e) {
             janela.mostrarMensagem(e.getMessage());
-            atualizarVisao();
         }
     }
 
+    private void comprarOuReceberMelhoria(int vaga) {
+        Melhoria peca;
+        String mensagem;
+        if (jogo.getBonusBrancosPendentes(jogo.getJogadorDaVez()) > 0) {
+            peca = jogo.receberBonusBranco(vaga);
+            mensagem = "Melhoria branca gratuita: " + peca + ".";
+        } else {
+            peca = jogo.comprarMelhoria(vaga);
+            mensagem = "Melhoria comprada: " + peca + ".";
+        }
+        concluir(mensagem);
+    }
+
+    // ------------------------------------------------------------------ cliques no mapa
     private void executarCliqueNoMapa(String destino) {
         if (destino == null || !jogo.isTurnoAtivo()) return;
         try {
-            if (janela.isModoYurt()) {
+            if (modo == Modo.YURT) {
                 jogo.construirIurta(destino);
-                janela.setModoYurt(false);
-                atualizarVisao();
-                janela.mostrarMensagem("Yurt construída em " + destino + ".");
+                definirModo(Modo.MOVER);
+                concluir("Yurt construída em " + destino + ".");
+            } else if (modo == Modo.ENTREGAR) {
+                entregarTesouros(destino);
             } else {
                 jogo.moverPara(destino);
-                atualizarVisao();
-                janela.mostrarMensagem("Peão movido para " + destino + ".");
+                concluir("Peão movido para " + destino + ".");
             }
         } catch (RegraInvalidaException e) {
-            // O enunciado da 2ª iteração pede que um clique inválido não faça nada.
+            // O enunciado da 2ª iteração pede que um clique inválido de movimento não faça nada;
+            // nos modos Yurt e Entregar o jogador pediu algo explícito, então ele recebe o motivo.
+            if (modo != Modo.MOVER) janela.mostrarMensagem(e.getMessage());
         }
     }
 
-    private void atualizarVisao() {
-        Set<String> alcancaveis = new HashSet<>();
-        if (jogo.isTurnoAtivo()) {
-            for (ParadaInfo parada : jogo.getParadas()) {
-                try {
-                    jogo.getCaminhoMaisBarato(parada.getId());
-                    alcancaveis.add(parada.getId());
-                } catch (RegraInvalidaException ignorada) {
-                    // destino fora do orçamento ou sem vaga
-                }
-            }
-        }
-        janela.atualizar(jogo.getParadas(), alcancaveis, jogo.getJogadorDaVez());
-        if (jogo.isJogoEncerrado()) janela.mostrarMensagem("Partida encerrada.");
+    private void entregarTesouros(String paradaId) {
+        ConselheiroInfo conselheiro = conselheiroDe(paradaId);
+        if (conselheiro == null) throw new RegraInvalidaException("Não há conselheiro em " + paradaId + ".");
+        Map<String, Integer> oferta = janela.pedirEntrega(paradaId, conselheiro, jogo.getTiposTesouro());
+        if (oferta == null) return; // o jogador desistiu
+        String cor = jogo.getJogadorDaVez();
+        int antes = jogo.getVotos(cor);
+        jogo.entregarTesouros(paradaId, oferta);
+        definirModo(Modo.MOVER);
+        concluir("Tesouros entregues em " + paradaId + ": +" + (jogo.getVotos(cor) - antes) + " voto(s).");
     }
 
+    private ConselheiroInfo conselheiroDe(String paradaId) {
+        for (ParadaInfo parada : jogo.getParadas())
+            if (parada.getId().equals(paradaId)) return parada.getConselheiro();
+        return null;
+    }
+
+    // ------------------------------------------------------------------ sequência da partida
+    private void alternarModo(Modo desejado, String instrucao) {
+        if (!jogo.isTurnoAtivo()) throw new RegraInvalidaException("Ative uma coluna primeiro.");
+        if (modo == desejado) {
+            definirModo(Modo.MOVER);
+            janela.mostrarMensagem("Modo desligado.");
+        } else {
+            definirModo(desejado);
+            janela.mostrarMensagem(instrucao);
+        }
+    }
+
+    private void definirModo(Modo novo) {
+        modo = novo;
+        janela.setModo(novo == Modo.MOVER ? null : novo.name());
+    }
+
+    /**
+     * Fecha uma ação bem-sucedida: mostra a mensagem com a orientação do próximo passo e avança
+     * as fases da partida (bônus branco pendente, aviso de fim acionado, fim de jogo).
+     */
+    private void concluir(String mensagem) {
+        String fase = avancarFase();
+        janela.mostrarMensagem(mensagem + fase + " " + proximoPasso());
+        if (jogo.isJogoEncerrado() && !fimDeJogoExibido) {
+            fimDeJogoExibido = true;
+            janela.mostrarFimDeJogo(jogo.getVencedores(), jogo.getVotosFinais());
+        }
+    }
+
+    private String avancarFase() {
+        String aviso = "";
+        if (jogo.getBonusBrancosPendentes(jogo.getJogadorDaVez()) > 0) {
+            jogo.exibirMelhorias(); // a escolha da peça gratuita é feita na janela de melhorias
+            aviso += " Linha completa: escolha uma melhoria gratuita para a coluna branca.";
+        }
+        if (jogo.isFimAcionado() && !fimAcionadoAvisado && !jogo.isJogoEncerrado()) {
+            fimAcionadoAvisado = true;
+            aviso += " O fim de jogo foi acionado: termina a rodada e mais uma.";
+        }
+        return aviso;
+    }
+
+    private String proximoPasso() {
+        if (jogo.isJogoEncerrado()) return "Partida encerrada.";
+        String vez = jogo.getJogadorDaVez();
+        if (!jogo.isTurnoAtivo()) {
+            return jogo.getBonusBrancosPendentes(vez) > 0
+                    ? "Escolha a melhoria branca pendente."
+                    : "Ative uma coluna na cartela.";
+        }
+        if (jogo.isKhanPendente()) return "Use o Khan, que é obrigatório nesta coluna.";
+        return "Mova, aja ou encerre o turno.";
+    }
+
+    // ------------------------------------------------------------------ ouvintes
     private class OuvinteTabuleiro extends MouseAdapter {
         @Override public void mouseClicked(MouseEvent e) {
             executarCliqueNoMapa(janela.paradaEm(e.getX(), e.getY()));
@@ -125,5 +213,26 @@ public class Controlador {
         @Override public void mouseClicked(MouseEvent e) {
             executarAcao(janela.acaoEm(e.getX(), e.getY()));
         }
+    }
+
+    private class OuvinteCartela extends MouseAdapter {
+        @Override public void mouseClicked(MouseEvent e) {
+            executarAcao(janela.acaoNaCartela(e.getX(), e.getY()));
+        }
+    }
+
+    private class OuvinteMelhorias extends MouseAdapter {
+        @Override public void mouseClicked(MouseEvent e) {
+            executarAcao(janela.acaoNasMelhorias(e.getX(), e.getY()));
+        }
+    }
+
+    /** Fechar a janela pelo botão da barra de título também é uma mudança de estado do Model. */
+    private class FechamentoCartela extends WindowAdapter {
+        @Override public void windowClosing(WindowEvent e) { jogo.ocultarCartela(); }
+    }
+
+    private class FechamentoMelhorias extends WindowAdapter {
+        @Override public void windowClosing(WindowEvent e) { jogo.ocultarMelhorias(); }
     }
 }
