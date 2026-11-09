@@ -58,5 +58,3 @@ class PainelCartelaOriginal extends JPanel {
         d.dispose();
     }
 }
-
-\n

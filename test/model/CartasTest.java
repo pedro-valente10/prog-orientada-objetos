@@ -138,5 +138,3 @@ public class CartasTest {
         individual.colocarBonusBranco(new Melhoria(304, Regiao.CHINA, Melhoria.Tipo.CAVALOS, null));
         assertTrue(individual.temLinhaCompleta());
     }}
-
-\n
