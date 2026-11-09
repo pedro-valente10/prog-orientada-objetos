@@ -1,5 +1,8 @@
 package model;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,20 +13,39 @@ class Jogador {
     static final int CUSTO_MELHORIA = 2; // moedas
 
     private final CorJogador cor;
+    private final Herdeiro herdeiro;
     private final Map<TipoTributo, Integer> tributos = new HashMap<>();
     private final Map<TipoTesouro, Integer> tesouros = new HashMap<>();
-    private final TabuleiroJogador tabuleiroIndividual = new TabuleiroJogador();
+    private final TabuleiroJogador tabuleiroIndividual;
     private int iurtasDisponiveis = MAX_IURTAS;
-    private String posicao;
+    private final List<String> posicoes = new ArrayList<>();
+    private int peaoAtivo;
+    private boolean peaoEscolhido;
 
-    Jogador(CorJogador cor, String posicaoInicial) {
+    Jogador(CorJogador cor, String posicaoInicial) { this(cor, null, posicaoInicial); }
+    Jogador(CorJogador cor, Herdeiro herdeiro, String posicaoInicial) {
         this.cor = cor;
-        this.posicao = posicaoInicial;
+        this.herdeiro = herdeiro;
+        this.tabuleiroIndividual = new TabuleiroJogador(herdeiro);
+        posicoes.add(posicaoInicial);
+        if (herdeiro == Herdeiro.ALTANI) posicoes.add(posicaoInicial);
+        peaoEscolhido = herdeiro != Herdeiro.ALTANI;
     }
 
     CorJogador getCor() { return cor; }
-    String getPosicao() { return posicao; }
-    void setPosicao(String posicao) { this.posicao = posicao; }
+    Herdeiro getHerdeiro() { return herdeiro; }
+    String getPosicao() { return posicoes.get(peaoAtivo); }
+    List<String> getPosicoes() { return Collections.unmodifiableList(posicoes); }
+    int getPeaoAtivo() { return peaoAtivo; }
+    boolean isEscolhaPeaoPendente() { return !peaoEscolhido; }
+    void escolherPeao(int indice) {
+        if (herdeiro != Herdeiro.ALTANI || indice < 0 || indice >= posicoes.size() || peaoEscolhido)
+            throw new RegraInvalidaException("Escolha inválida de peão.");
+        peaoAtivo = indice;
+        peaoEscolhido = true;
+    }
+    void reiniciarEscolhaPeao() { if (herdeiro == Herdeiro.ALTANI) peaoEscolhido = false; }
+    void setPosicao(String posicao) { posicoes.set(peaoAtivo, posicao); }
     int getIurtasDisponiveis() { return iurtasDisponiveis; }
     TabuleiroJogador getTabuleiroIndividual() { return tabuleiroIndividual; }
 

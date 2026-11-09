@@ -15,6 +15,7 @@ import org.junit.runners.Suite;
     SegundaIteracaoTest.class,
     TerceiraIteracaoTest.class,
     CartasTest.class,
+    HerdeirosTest.class,
     view.PainelControleTest.class
 })
 public class SuiteDeTestes {

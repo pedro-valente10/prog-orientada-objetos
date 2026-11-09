@@ -107,11 +107,12 @@ class PainelCartela extends JPanel {
             d.fillRoundRect(x + 5, TOPO + 214, 97, 43, 7, 7);
             d.setColor(Color.WHITE);
             d.setFont(new Font("SansSerif", Font.BOLD, 12));
-            d.drawString(jogo.getCavalosIniciais(coluna) + " cavalo(s)", x + 11, TOPO + 231);
+            d.drawString(jogo.getCavalosIniciais(exibido, coluna) + " cavalo(s)", x + 11, TOPO + 231);
             d.setFont(new Font("SansSerif", Font.PLAIN, 10));
-            String extra = coluna == Coluna.BRANCA ? "recuperar" :
-                    jogo.isKhanInicial(coluna) ? "Khan" :
-                    jogo.getPunhosIniciais(coluna) + " punho(s)";
+            String extra = coluna == Coluna.BRANCA ? "Khan + recuperar" :
+                    (jogo.isKhanInicial(exibido, coluna) ? "Khan + " : "")
+                    + jogo.getPunhosIniciais(exibido, coluna) + " punho(s)"
+                    + (jogo.getMoedasIniciais(exibido, coluna) > 0 ? " + moeda" : "");
             d.drawString(extra, x + 11, TOPO + 248);
         }
     }
@@ -119,7 +120,8 @@ class PainelCartela extends JPanel {
     private void desenharResumo(Graphics2D d, String exibido) {
         d.setColor(Color.WHITE);
         d.setFont(new Font("SansSerif", Font.BOLD, 13));
-        d.drawString("Cartela de " + exibido + (exibido.equals(jogo.getJogadorDaVez()) ? " (jogador da vez)" : ""),
+        d.drawString("Cartela de " + exibido + " — " + jogo.getHerdeiro(exibido).getNome()
+                + (exibido.equals(jogo.getJogadorDaVez()) ? " (vez)" : ""),
                 14, 328);
         d.setFont(new Font("SansSerif", Font.PLAIN, 12));
         d.drawString("Moedas " + jogo.getTributos(exibido, "MOEDA") + "   Espadas "

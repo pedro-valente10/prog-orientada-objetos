@@ -1,12 +1,12 @@
 # Herdeiros do Khan — terceira iteração
 
-Projeto Swing/Java2D em Java 8. Esta pasta é uma cópia do commit `e0c0a25fe98498143d593815365ecb0fc2a207b4` da branch `main` de [pedro-valente10/prog-orientada-objetos](https://github.com/pedro-valente10/prog-orientada-objetos), trabalhada na branch local `codex/terceira-iteracao`. O projeto anterior em `02_Projeto` não foi alterado.
+Aplicação Swing/Java2D para Java 8. Esta pasta é uma cópia isolada do projeto do GitHub; a pasta `02_Projeto` foi preservada. A interface permite escolher de 2 a 5 herdeiros, jogar com as cinco cartelas e usar as regras implementadas no Model por cliques.
 
-O estado dos requisitos dos PDFs está em [REQUISITOS_3A_ITERACAO.md](REQUISITOS_3A_ITERACAO.md). As decisões de arquitetura e os limites do manual estão em [DECISOES_3A_ITERACAO.md](DECISOES_3A_ITERACAO.md).
+A verificação por requisito está em [REQUISITOS_3A_ITERACAO.md](REQUISITOS_3A_ITERACAO.md); as decisões e limites do projeto estão em [DECISOES_3A_ITERACAO.md](DECISOES_3A_ITERACAO.md).
 
 ## Executar
 
-Use um JDK 8. No PowerShell, dentro desta pasta:
+No PowerShell, dentro desta pasta, com JDK 8 no PATH:
 
 ```powershell
 New-Item -ItemType Directory -Force build/classes | Out-Null
@@ -15,29 +15,28 @@ javac -source 8 -target 8 -encoding UTF-8 -d build/classes $fontes
 java -cp 'build/classes;src' controller.Main
 ```
 
-`src` precisa estar no classpath para carregar `view/img/tabuleiro.jpg`. Com JDK 9 ou posterior, também é possível compilar com `javac --release 8` em vez de `-source 8 -target 8`.
-
-Ao abrir, escolha entre 2 e 5 jogadores. Na janela **Cartas**, o jogador da vez escolhe uma das duas cartas secretas; na **Cartela**, ativa uma coluna. As duas janelas se fecham após a escolha e podem ser reabertas pelos botões. Clique nos círculos do mapa para mover. Use o painel para tributo, Khan, melhorias, iurta, ataque, entrega e encerramento. O botão **Bônus** reabre a escolha de tesouro se o diálogo for fechado. A janela de **Melhorias** fecha após uma compra e reaparece quando há uma melhoria branca gratuita pendente.
-
-Em telas menores, o mapa é escalado e as janelas auxiliares ficam sobre seu lado esquerdo para deixar o painel de controle livre. Feche uma janela auxiliar pela barra de título para acessar as paradas cobertas.
+`src` no classpath carrega as imagens oficiais do mapa, das 24 cartas e das cinco cartelas. Ao abrir, escolha o número de jogadores e os herdeiros, sem repetir personagem. Jochi escolhe sua melhoria inicial. Na janela **Cartas**, cada jogador escolhe uma de duas cartas secretas antes de seu primeiro turno. Na **Cartela**, a aba **Jogo** ativa a coluna e mostra as melhorias; a aba **Cartela original** exibe a arte. Clique nas paradas do mapa para mover. O painel de controle reúne tributo, Khan, compra de melhoria, iurta, ataque, entrega, habilidade e fim do turno. Para Altani, a escolha do peão aparece ao ativar a coluna. Para Ogedei, clique **Habilidade** e depois **Pegar** na cidade.
 
 ## Testes
 
-A suíte precisa de JUnit 4.13.2 e Hamcrest 1.3. Para obtê-los do Maven Central e executar a suíte:
+A suíte usa JUnit 4.13.2 e Hamcrest 1.3. Se os JARs não estiverem disponíveis, baixe-os:
 
 ```powershell
 New-Item -ItemType Directory -Force build/lib, build/classes | Out-Null
 Invoke-WebRequest 'https://repo.maven.apache.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar' -OutFile build/lib/junit-4.13.2.jar
 Invoke-WebRequest 'https://repo.maven.apache.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar' -OutFile build/lib/hamcrest-core-1.3.jar
 $cp = 'build/classes;build/lib/junit-4.13.2.jar;build/lib/hamcrest-core-1.3.jar'
-$testes = Get-ChildItem test -Recurse -Filter '*.java' | ForEach-Object FullName
-javac -source 8 -target 8 -encoding UTF-8 -cp $cp -d build/classes $testes
+$fontes = Get-ChildItem src,test -Recurse -Filter '*.java' | ForEach-Object FullName
+javac -source 8 -target 8 -encoding UTF-8 -cp $cp -d build/classes $fontes
 java '-Djava.awt.headless=true' -cp $cp org.junit.runner.JUnitCore model.SuiteDeTestes
 java -cp 'build/classes;src' model.InterfaceSmoke
+foreach ($h in 'ALTANI','JOCHI','CHAGATAI','TOLUI','OGEDEI') {
+    java -cp 'build/classes;src' model.InterfaceHerdeirosSmoke $h
+}
 ```
 
-A execução de referência com Temurin JDK 8 (`1.8.0_512`) passou em **47 testes JUnit**. `InterfaceSmoke` prepara recursos apenas para o teste e aciona os ouvintes de clique do Swing: percorre as ações principais, quatro ataques à mesma cidade, conquista, entrega e votos. Também confere os centros das 34 paradas, os botões de cidades e a abertura/fechamento das janelas. Suas capturas são geradas em `build/screenshots/`.
+Referência executada com Temurin JDK 8 (`1.8.0_512`): **54/54 testes JUnit passaram**. `InterfaceSmoke` clicou carta, coluna, movimento, tributo, Khan, melhoria, iurta, quatro ataques com custo de espadas, conquista, entrega, votos e fim do turno. Também confirmou as 34 paradas clicáveis, as cidades reveladas com botão dentro do painel e a abertura/fechamento das janelas. `InterfaceHerdeirosSmoke` passou para os cinco herdeiros. Os cenários de interface preparam recursos no teste para percorrer várias ações numa rodada.
 
-## Limites conhecidos
+## Escopo
 
-A partida ainda não reproduz o manual completo. Os tabuleiros individuais usam um perfil comum, o grafo do mapa e as províncias são uma transcrição simplificada, e as habilidades próprias de Altani, Chagatai, Jochi, Ogedei e Tolui ainda não foram integradas. A escolha das cores/personagens e a tela inicial de nova/continuar partida não existem. Salvar e recuperar ficam para a última iteração, conforme o PDF da terceira. As cartas são desenhadas como peças textuais em Java2D porque as artes oficiais não constam do repositório. Esses pontos estão classificados individualmente no documento de requisitos; a partida não é apresentada como implementação integral do manual.
+A terceira iteração pede integração View–Model, ações pela interface, Singleton, Façade, Observer com interfaces e Controller. Salvamento e recuperação são reservados pelo enunciado para a última iteração. O mapa e as províncias deste projeto são uma transcrição aproximada da fotografia do tabuleiro; isso limita a fidelidade de rotas, adjacências e pontuação dependente da geografia. Veja a matriz de requisitos para essa ressalva.

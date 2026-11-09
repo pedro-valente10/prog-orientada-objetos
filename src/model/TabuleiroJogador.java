@@ -12,6 +12,10 @@ class TabuleiroJogador {
     private static final int[] PUNHOS_INICIAIS = { 0, 1, 0, 0 };
     private static final boolean[] KHAN_INICIAL = { true, false, true, false };
 
+    private final Herdeiro herdeiro;
+    TabuleiroJogador() { this(null); }
+    TabuleiroJogador(Herdeiro herdeiro) { this.herdeiro = herdeiro; }
+
     private final Melhoria[][] pecas = new Melhoria[Coluna.values().length][LINHAS];
     private final boolean[] fichasUsadas = new boolean[Coluna.values().length];
     private final boolean[] linhasPremiadas = new boolean[LINHAS];
@@ -47,17 +51,21 @@ class TabuleiroJogador {
         return Collections.unmodifiableList(copia);
     }
 
-    void colocar(Coluna coluna, Melhoria peca) {
+    void colocar(Coluna coluna, Melhoria peca) { colocar(coluna, peca, false); }
+
+    void colocarLivre(Coluna coluna, Melhoria peca) { colocar(coluna, peca, true); }
+
+    private void colocar(Coluna coluna, Melhoria peca, boolean ignorarCor) {
         if (peca == null || !temEspaco(coluna))
             throw new RegraInvalidaException("Não há espaço para a melhoria.");
-        if (coluna != Coluna.BRANCA && peca.cor() != coluna.regiao())
+        if (!ignorarCor && coluna != Coluna.BRANCA && peca.cor() != coluna.regiao())
             throw new RegraInvalidaException("A cor da melhoria não corresponde à coluna.");
         int linha = quantidadeMelhorias(coluna);
         pecas[coluna.ordinal()][linha] = peca;
         if (coluna != Coluna.BRANCA && !linhasPremiadas[linha]
                 && pecas[0][linha] != null && pecas[1][linha] != null && pecas[2][linha] != null) {
             linhasPremiadas[linha] = true;
-            bonusBrancosPendentes++;
+            if (temEspaco(Coluna.BRANCA)) bonusBrancosPendentes++;
         }
     }
 
@@ -72,9 +80,9 @@ class TabuleiroJogador {
         if (!disponivel(coluna))
             throw new RegraInvalidaException("A ficha dessa coluna já foi usada.");
         int indice = coluna.ordinal();
-        int cavalos = CAVALOS_INICIAIS[indice];
-        int punhos = PUNHOS_INICIAIS[indice];
-        int moedas = 0, espadas = 0, yurts = 0;
+        int cavalos = cavalosIniciais(herdeiro, coluna);
+        int punhos = punhosIniciais(herdeiro, coluna);
+        int moedas = moedasIniciais(herdeiro, coluna), espadas = 0, yurts = 0;
         int[] tesouros = new int[TipoTesouro.values().length];
         for (Melhoria peca : pecas[indice]) {
             if (peca == null) continue;
@@ -90,12 +98,22 @@ class TabuleiroJogador {
         }
         if (coluna == Coluna.BRANCA) Arrays.fill(fichasUsadas, false);
         else fichasUsadas[indice] = true;
-        return new Acoes(cavalos, punhos, KHAN_INICIAL[indice], moedas, espadas, yurts, tesouros);
+        return new Acoes(cavalos, punhos, khanInicial(herdeiro, coluna), moedas, espadas, yurts, tesouros);
     }
 
-    static int cavalosIniciais(Coluna coluna) { return CAVALOS_INICIAIS[coluna.ordinal()]; }
-    static int punhosIniciais(Coluna coluna) { return PUNHOS_INICIAIS[coluna.ordinal()]; }
-    static boolean khanInicial(Coluna coluna) { return KHAN_INICIAL[coluna.ordinal()]; }
+    static int cavalosIniciais(Coluna coluna) { return cavalosIniciais(null, coluna); }
+    static int punhosIniciais(Coluna coluna) { return punhosIniciais(null, coluna); }
+    static boolean khanInicial(Coluna coluna) { return khanInicial(null, coluna); }
+    static int cavalosIniciais(Herdeiro h, Coluna c) {
+        return h == null ? CAVALOS_INICIAIS[c.ordinal()] : h.cavalos(c);
+    }
+    static int punhosIniciais(Herdeiro h, Coluna c) {
+        return h == null ? PUNHOS_INICIAIS[c.ordinal()] : h.punhos(c);
+    }
+    static int moedasIniciais(Herdeiro h, Coluna c) { return h == null ? 0 : h.moedas(c); }
+    static boolean khanInicial(Herdeiro h, Coluna c) {
+        return h == null ? KHAN_INICIAL[c.ordinal()] : h.khan(c);
+    }
 
     static final class Acoes {
         final int cavalos, punhos, moedas, espadas, yurts;

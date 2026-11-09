@@ -107,6 +107,27 @@ public class CartasTest {
                 new Melhoria(200+i, Regiao.CHINA, Melhoria.Tipo.CAVALOS, null));
         assertEquals(antes+1, (int) p.votosFinais().get(CorJogador.VERMELHO));
     }
+    @Test public void cartasDeCidadeContamLocaisAindaNaoRevelados() {
+        Partida p = new Partida(Arrays.asList(CorJogador.VERMELHO, CorJogador.AZUL),
+                TabuleiroFactory.criarTabuleiroBasico(17L), 17L);
+        java.util.Set<Cidade> reveladas = new java.util.HashSet<>(
+                p.getTabuleiro().getCidadesReveladas());
+        int preparadas = 0;
+        for (Cidade cidade : p.getTabuleiro().getTodasCidades()) {
+            if (reveladas.contains(cidade)) continue;
+            int i = 0;
+            for (String parada : cidade.getParadasAdjacentes()) {
+                p.getTabuleiro().getParada(parada).adicionarIurta(CorJogador.VERMELHO);
+                if (++i == 2) break;
+            }
+            if (++preparadas == 3) break;
+        }
+        assertEquals(3, preparadas);
+        Jogador jogador = p.getJogador(CorJogador.VERMELHO);
+        assertEquals(1, Cartas.Secreta.CIDADAO.votos(p, jogador));
+        assertEquals(2, Cartas.Secreta.PREFEITO.votos(p, jogador));
+    }
+
     @Test public void linhaDeCartaAbertaIncluiColunaBranca() {
         TabuleiroJogador individual = new TabuleiroJogador();
         individual.colocar(Coluna.CHINA, new Melhoria(301, Regiao.CHINA, Melhoria.Tipo.CAVALOS, null));
@@ -117,3 +138,5 @@ public class CartasTest {
         individual.colocarBonusBranco(new Melhoria(304, Regiao.CHINA, Melhoria.Tipo.CAVALOS, null));
         assertTrue(individual.temLinhaCompleta());
     }}
+
+\n

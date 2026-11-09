@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 import controller.Controlador;
 import view.JanelaJogo;
@@ -36,8 +37,8 @@ public final class InterfaceSmoke {
         // Cenário de integração: uma melhoria de punho e recursos para exercitar todas as ações.
         Partida p = partida();
         Jogador j = p.getJogador(CorJogador.VERMELHO);
-        j.getTabuleiroIndividual().colocar(Coluna.CHINA,
-                new Melhoria(100, Regiao.CHINA, Melhoria.Tipo.PUNHO, null));
+        j.getTabuleiroIndividual().colocar(Coluna.RUSSIA,
+                new Melhoria(100, Regiao.RUSSIA, Melhoria.Tipo.CAVALOS, null));
         j.adicionarTributo(TipoTributo.MOEDA, 1);
         j.adicionarTributo(TipoTributo.IURTA, 1);
         j.adicionarTributo(TipoTributo.ESPADA, 7);
@@ -73,14 +74,14 @@ public final class InterfaceSmoke {
         exigir(!jogo.isCartasExibidas(), "fechar cartas pela barra de título");
         clicar(controle(), 297, 528);
         exigir(jogo.isCartasExibidas(), "reabrir cartas pelo painel");
-        clicar(dialogo("Cartas"), 40, 300);
+        clicar(dialogo("Cartas"), 105, 330);
         exigir(jogo.getCartaSecreta("VERMELHO") != null, "carta secreta");
         fecharDialogo("Cartela");
         exigir(jogo.getCartelaExibida() == null, "fechar cartela pela barra de título");
         clicar(controle(), 67, 528);
         exigir(jogo.getCartelaExibida() != null, "reabrir cartela pelo painel");
-        clicar(dialogo("Cartela"), 67, 61);
-        exigir(jogo.isTurnoAtivo() && jogo.isKhanPendente(), "ativar coluna CHINA");
+        clicar(dialogo("Cartela"), 297, 61);
+        exigir(jogo.isTurnoAtivo() && jogo.isKhanPendente(), "ativar coluna RUSSIA");
         for (ParadaInfo parada : jogo.getParadas()) {
             int x = (int) Math.round(parada.getX() * mapa().getWidth());
             int y = (int) Math.round(parada.getY() * mapa().getHeight());
@@ -101,7 +102,7 @@ public final class InterfaceSmoke {
         exigir(!jogo.isMelhoriasExibidas(), "fechar melhorias pela barra de título");
         clicar(controle(), 182, 283); // modo Yurt
         clicarParada("C9");
-        exigir(jogo.getIurtasDisponiveis("VERMELHO") == 11, "construir iurta");
+        exigir(jogo.getIurtasDisponiveis("VERMELHO") == 10, "construir iurta");
         exigir(jogo.getCidadesReveladas().contains("CANTAO"), "cidade inicial revelada");
         for (int i = 0; i < 4; i++) {
             clicar(controle(), 67, 479);
@@ -140,7 +141,9 @@ public final class InterfaceSmoke {
         throw new AssertionError("Janela não encontrada: " + titulo);
     }
     private static Component dialogo(String titulo) {
-        return janelaDialogo(titulo).getContentPane().getComponent(0);
+        Component componente = janelaDialogo(titulo).getContentPane().getComponent(0);
+        return componente instanceof JTabbedPane
+                ? ((JTabbedPane) componente).getSelectedComponent() : componente;
     }
     private static void fecharDialogo(String titulo) {
         JDialog d = janelaDialogo(titulo);
@@ -172,6 +175,15 @@ public final class InterfaceSmoke {
                     BufferedImage.TYPE_INT_ARGB);
             Graphics2D cg = cartasImagem.createGraphics(); cartas.paint(cg); cg.dispose();
             ImageIO.write(cartasImagem, "png", new File(diretorio, "cartas.png"));
+            JTabbedPane abas = (JTabbedPane) janelaDialogo("Cartela")
+                    .getContentPane().getComponent(0);
+            abas.setSelectedIndex(1);
+            Component original = abas.getSelectedComponent();
+            BufferedImage originalImagem = new BufferedImage(original.getWidth(), original.getHeight(),
+                    BufferedImage.TYPE_INT_ARGB);
+            Graphics2D og = originalImagem.createGraphics(); original.paint(og); og.dispose();
+            ImageIO.write(originalImagem, "png", new File(diretorio, "cartela-original.png"));
+            abas.setSelectedIndex(0);
         } catch (java.io.IOException e) { throw new AssertionError(e); }
     }
     private static void clicarParada(String id) {
@@ -194,3 +206,5 @@ public final class InterfaceSmoke {
         System.out.println("OK " + etapa);
     }
 }
+
+\n

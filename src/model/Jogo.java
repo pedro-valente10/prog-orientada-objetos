@@ -56,11 +56,25 @@ public class Jogo implements ObservadoIF {
         if (numeroJogadores < 2 || numeroJogadores > 5) {
             throw new IllegalArgumentException("O jogo é para 2 a 5 jogadores.");
         }
+        List<Herdeiro> escolhidos = new ArrayList<>();
+        for (int i = 0; i < numeroJogadores; i++)
+            escolhidos.add(Herdeiro.daCor(CorJogador.values()[i]));
+        iniciarComHerdeiros(escolhidos, semente);
+    }
+
+    /** Nova partida com seleção explícita dos herdeiros, na ordem dos turnos. */
+    public void novaPartidaComHerdeiros(List<Herdeiro> escolhidos) {
+        iniciarComHerdeiros(escolhidos, System.nanoTime());
+    }
+
+    private void iniciarComHerdeiros(List<Herdeiro> escolhidos, long semente) {
+        if (escolhidos == null || escolhidos.size() < 2 || escolhidos.size() > 5
+                || new HashSet<Herdeiro>(escolhidos).size() != escolhidos.size()
+                || escolhidos.contains(null))
+            throw new IllegalArgumentException("Escolha de 2 a 5 herdeiros diferentes.");
         List<CorJogador> cores = new ArrayList<>();
-        for (int i = 0; i < numeroJogadores; i++) {
-            cores.add(CorJogador.values()[i]);
-        }
-        this.partida = new Partida(cores, TabuleiroFactory.criarTabuleiroBasico(semente), semente);
+        for (Herdeiro herdeiro : escolhidos) cores.add(herdeiro.cor());
+        this.partida = new Partida(cores, TabuleiroFactory.criarTabuleiroBasico(semente), semente, true);
         this.cartelaExibida = null;
         this.melhoriasExibidas = false;
         this.cartasExibidas = false;
@@ -183,6 +197,12 @@ public class Jogo implements ObservadoIF {
         return peca;
     }
 
+    public Melhoria comprarMelhoriaJochi(int vagaArea, Coluna destino) {
+        Melhoria peca = p().comprarMelhoriaJochi(vagaArea, destino);
+        concluirAcao(EventoJogo.MELHORIA_ADQUIRIDA, String.valueOf(peca.getId()));
+        return peca;
+    }
+
     public Melhoria receberBonusBranco(int vagaArea) {
         Melhoria peca = p().receberBonusBranco(vagaArea);
         concluirAcao(EventoJogo.MELHORIA_ADQUIRIDA, String.valueOf(peca.getId()));
@@ -203,6 +223,13 @@ public class Jogo implements ObservadoIF {
 
     // ---- cartas, bônus e consultas ----
     public List<String> getCartasAbertas() { return p().getCartasAbertas(); }
+    public List<String> getImagensCartasAbertas() { return p().getImagensCartasAbertas(); }
+    public List<String> getImagensOpcoesSecretas(String cor) {
+        return p().getImagensOpcoesSecretas(CorJogador.valueOf(cor));
+    }
+    public String getImagemCartaSecreta(String cor) {
+        return p().getImagemCartaSecreta(CorJogador.valueOf(cor));
+    }
     public List<String> getOpcoesSecretas(String cor) {
         return p().getOpcoesSecretas(CorJogador.valueOf(cor));
     }
@@ -267,9 +294,50 @@ public class Jogo implements ObservadoIF {
     public int getIurtasDisponiveis(String cor) {
         return p().getJogador(CorJogador.valueOf(cor)).getIurtasDisponiveis();
     }
-    public int getCavalosIniciais(Coluna coluna) { return TabuleiroJogador.cavalosIniciais(coluna); }
-    public int getPunhosIniciais(Coluna coluna) { return TabuleiroJogador.punhosIniciais(coluna); }
-    public boolean isKhanInicial(Coluna coluna) { return TabuleiroJogador.khanInicial(coluna); }
+    public Herdeiro getHerdeiro(String cor) { return p().getHerdeiro(CorJogador.valueOf(cor)); }
+    public List<String> getPosicoesPeoes(String cor) {
+        return p().getPosicoesPeoes(CorJogador.valueOf(cor));
+    }
+    public boolean isEscolhaPeaoPendente() { return p().isEscolhaPeaoPendente(); }
+    public void escolherPeao(int indice) {
+        p().escolherPeao(indice);
+        notificar(EventoJogo.PEAO_ESCOLHIDO, Integer.toString(indice));
+    }
+    public List<Melhoria> getOpcoesIniciaisJochi() { return p().getOpcoesIniciaisJochi(); }
+    public void escolherMelhoriaInicialJochi(int indice) {
+        p().escolherMelhoriaInicialJochi(indice);
+        notificar(EventoJogo.MELHORIA_INICIAL_ESCOLHIDA, Integer.toString(indice));
+    }
+    public boolean isHabilidadeUsadaNoTurno() { return p().isHabilidadeUsadaNoTurno(); }
+    public void usarHabilidadeChagatai() {
+        p().usarHabilidadeChagatai();
+        concluirAcao(EventoJogo.HABILIDADE_USADA, "CHAGATAI");
+    }
+    public void usarHabilidadeOgedei(String cidadeId) {
+        p().usarHabilidadeOgedei(cidadeId);
+        concluirAcao(EventoJogo.HABILIDADE_USADA, cidadeId);
+    }
+    public int getCavalosIniciais(Coluna coluna) {
+        return getCavalosIniciais(getJogadorDaVez(), coluna);
+    }
+    public int getPunhosIniciais(Coluna coluna) {
+        return getPunhosIniciais(getJogadorDaVez(), coluna);
+    }
+    public boolean isKhanInicial(Coluna coluna) {
+        return isKhanInicial(getJogadorDaVez(), coluna);
+    }
+    public int getCavalosIniciais(String cor, Coluna coluna) {
+        return TabuleiroJogador.cavalosIniciais(getHerdeiro(cor), coluna);
+    }
+    public int getPunhosIniciais(String cor, Coluna coluna) {
+        return TabuleiroJogador.punhosIniciais(getHerdeiro(cor), coluna);
+    }
+    public int getMoedasIniciais(String cor, Coluna coluna) {
+        return TabuleiroJogador.moedasIniciais(getHerdeiro(cor), coluna);
+    }
+    public boolean isKhanInicial(String cor, Coluna coluna) {
+        return TabuleiroJogador.khanInicial(getHerdeiro(cor), coluna);
+    }
     public List<String> getProvincias() {
         List<String> ids = new ArrayList<>();
         for (Provincia p : p().getTabuleiro().getProvincias()) ids.add(p.getId());

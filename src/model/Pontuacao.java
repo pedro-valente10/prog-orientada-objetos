@@ -78,6 +78,13 @@ final class Pontuacao {
         return votos;
     }
 
+    private static int distanciaMaisProxima(Jogador jogador, Tabuleiro tabuleiro) {
+        int menor = Integer.MAX_VALUE;
+        for (String posicao : jogador.getPosicoes())
+            menor = Math.min(menor, tabuleiro.distancia(posicao, Tabuleiro.KARAKORUM));
+        return menor;
+    }
+
     /**
      * Vencedores: mais votos; empate -> mais tesouros não entregues;
      * empate -> mais perto de Karakorum; se persistir, vitória compartilhada.
@@ -116,11 +123,11 @@ final class Pontuacao {
             int menorDistancia = Integer.MAX_VALUE;
             for (Jogador j : candidatos) {
                 menorDistancia = Math.min(menorDistancia,
-                        tabuleiro.distancia(j.getPosicao(), Tabuleiro.KARAKORUM));
+                        distanciaMaisProxima(j, tabuleiro));
             }
             filtrados = new ArrayList<>();
             for (Jogador j : candidatos) {
-                if (tabuleiro.distancia(j.getPosicao(), Tabuleiro.KARAKORUM) == menorDistancia) {
+                if (distanciaMaisProxima(j, tabuleiro) == menorDistancia) {
                     filtrados.add(j);
                 }
             }

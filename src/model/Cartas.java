@@ -103,7 +103,7 @@ final class Cartas {
                     return pontos(n, 2, 3, 4);
                 case PREFEITO: case CIDADAO:
                     n = 0;
-                    for (Cidade cidade : p.getTabuleiro().getCidadesReveladas()) {
+                    for (Cidade cidade : p.getTabuleiro().getTodasCidades()) {
                         int iurtas = 0;
                         for (String id : cidade.getParadasAdjacentes())
                             iurtas += p.getTabuleiro().getParada(id).contarIurtas(j.getCor());
@@ -166,6 +166,21 @@ final class Cartas {
         for (Aberta c : abertas) resultado.add(c.descricao);
         return Collections.unmodifiableList(resultado);
     }
+    List<String> imagensAbertas() {
+        List<String> resultado = new ArrayList<>();
+        for (Aberta c : abertas) resultado.add(imagem(c));
+        return Collections.unmodifiableList(resultado);
+    }
+    List<String> imagensOpcoes(CorJogador cor) {
+        List<String> resultado = new ArrayList<>();
+        if (!escolhidas.containsKey(cor))
+            for (Secreta c : opcoes.get(cor)) resultado.add(imagem(c));
+        return Collections.unmodifiableList(resultado);
+    }
+    String imagemEscolhida(CorJogador cor) {
+        Secreta c = escolhidas.get(cor);
+        return c == null ? null : imagem(c);
+    }
     List<String> opcoes(CorJogador cor) {
         List<String> resultado = new ArrayList<>();
         if (!escolhidas.containsKey(cor))
@@ -201,6 +216,40 @@ final class Cartas {
     }
     int bonusRecebidos(CorJogador cor) { return bonusRecebidos.get(cor); }
 
+    private static String imagem(Aberta c) {
+        switch (c) {
+            case ESPADAS_4: return "cartas1-1.jpg";
+            case IURTAS_6: return "cartas1-2.jpg";
+            case IURTAS_10: return "cartas1-3.jpg";
+            case TESOUROS_4: return "cartas1-4.jpg";
+            case DUAS_CADA_REGIAO: return "cartas1-5.jpg";
+            case UMA_CADA_REGIAO: return "cartas1-6.jpg";
+            case BONUS_2: return "cartas1-7.jpg";
+            case BONUS_3: return "cartas1-8.jpg";
+            case TIPOS_5: return "cartas1-9.jpg";
+            case CIDADES_3: return "cartas2-1.jpg";
+            case CIDADES_2: return "cartas2-2.jpg";
+            case LINHA: return "cartas2-3.jpg";
+            case QUATRO_COLUNA: return "cartas3-1.jpg";
+            case DUAS_COLUNAS: return "cartas3-2.jpg";
+            default: throw new IllegalStateException();
+        }
+    }
+    private static String imagem(Secreta c) {
+        switch (c) {
+            case SACERDOTE: return "cartas4-1.jpg";
+            case COLECIONADOR: return "cartas4-2.jpg";
+            case VIAJANTE: return "cartas5-1.jpg";
+            case SOLDADO: return "cartas5-2.jpg";
+            case CIDADAO: return "cartas6-1.jpg";
+            case CAVALEIRO: return "cartas6-2.jpg";
+            case MENSAGEIRO: return "cartas7-1.jpg";
+            case GOVERNADOR: return "cartas7-2.jpg";
+            case PREFEITO: return "cartas8-1.jpg";
+            case BAJULADOR: return "cartas8-2.jpg";
+            default: throw new IllegalStateException();
+        }
+    }
     private static int pontos(int n, int a, int b, int c) {
         return n >= c ? 3 : n >= b ? 2 : n >= a ? 1 : 0;
     }
@@ -220,11 +269,14 @@ final class Cartas {
     private static int maiorRede(Tabuleiro t, CorJogador cor) {
         int maior = 0; Set<String> vistos = new HashSet<>();
         for (Parada inicial : t.getParadas()) {
-            if (!inicial.temIurta(cor) || !vistos.add(inicial.getId())) continue;
+            if (inicial.isKarakorum() || !inicial.temIurta(cor)
+                    || !vistos.add(inicial.getId())) continue;
             List<String> fila = new ArrayList<>(); fila.add(inicial.getId());
             for (int i = 0; i < fila.size(); i++)
                 for (String vizinha : t.getParada(fila.get(i)).getVizinhas())
-                    if (t.getParada(vizinha).temIurta(cor) && vistos.add(vizinha)) fila.add(vizinha);
+                    if (!t.getParada(vizinha).isKarakorum()
+                            && t.getParada(vizinha).temIurta(cor) && vistos.add(vizinha))
+                        fila.add(vizinha);
             int iurtas = 0;
             for (String id : fila) iurtas += t.getParada(id).contarIurtas(cor);
             maior = Math.max(maior, iurtas);

@@ -25,7 +25,7 @@ import view.JanelaJogo;
 public class Controlador {
 
     /** O que o próximo clique em uma parada do mapa significa. */
-    private enum Modo { MOVER, YURT, ENTREGAR }
+    private enum Modo { MOVER, YURT, ENTREGAR, OGEDEI }
 
     private final Jogo jogo;
     private final JanelaJogo janela;
@@ -78,9 +78,22 @@ public class Controlador {
             } else if ("BONUS".equals(operacao)) {
                 resolverBonus();
                 concluir("Bônus de tesouro resolvido.");
+            } else if ("HABILIDADE".equals(operacao)) {
+                model.Herdeiro herdeiro = jogo.getHerdeiro(jogo.getJogadorDaVez());
+                if (herdeiro == model.Herdeiro.CHAGATAI) {
+                    jogo.usarHabilidadeChagatai();
+                    concluir("Chagatai trocou 1 movimento por 1 espada.");
+                } else if (herdeiro == model.Herdeiro.OGEDEI) {
+                    alternarModo(Modo.OGEDEI, "Clique em Pegar na cidade desejada (mínimo de 2 tesouros). ");
+                }
             } else if ("COLUNA".equals(operacao)) {
                 if (jogo.getCartaSecreta(jogo.getJogadorDaVez()) == null)
                     throw new RegraInvalidaException("Escolha sua carta secreta na janela Cartas.");
+                if (jogo.isEscolhaPeaoPendente()) {
+                    int peao = janela.pedirPeao(jogo.getPosicoesPeoes(jogo.getJogadorDaVez()));
+                    if (peao < 0) return;
+                    jogo.escolherPeao(peao);
+                }
                 jogo.ativarColuna(Coluna.valueOf(argumento));
                 jogo.ocultarCartela();
                 definirModo(Modo.MOVER);
@@ -102,8 +115,14 @@ public class Controlador {
                 jogo.coletarTributo(argumento);
                 concluir("Tributo coletado em " + argumento + ".");
             } else if ("ATAQUE".equals(operacao)) {
-                jogo.atacarCidade(argumento, 1);
-                concluir("Um tesouro retirado de " + argumento + ".");
+                if (modo == Modo.OGEDEI) {
+                    jogo.usarHabilidadeOgedei(argumento);
+                    definirModo(Modo.MOVER);
+                    concluir("Ogedei tomou um tesouro de " + argumento + " por 1 moeda.");
+                } else {
+                    jogo.atacarCidade(argumento, 1);
+                    concluir("Um tesouro retirado de " + argumento + ".");
+                }
             }
         } catch (RegraInvalidaException e) {
             janela.mostrarMensagem(e.getMessage());
@@ -116,6 +135,15 @@ public class Controlador {
         if (jogo.getBonusBrancosPendentes(jogo.getJogadorDaVez()) > 0) {
             peca = jogo.receberBonusBranco(vaga);
             mensagem = "Melhoria branca gratuita: " + peca + ".";
+        } else if (jogo.getHerdeiro(jogo.getJogadorDaVez()) == model.Herdeiro.JOCHI) {
+            java.util.List<Coluna> disponiveis = new java.util.ArrayList<>();
+            for (Coluna coluna : Coluna.values())
+                if (jogo.getMelhorias(jogo.getJogadorDaVez(), coluna).contains(null))
+                    disponiveis.add(coluna);
+            Coluna destino = janela.pedirColunaMelhoria(disponiveis);
+            if (destino == null) return;
+            peca = jogo.comprarMelhoriaJochi(vaga, destino);
+            mensagem = "Melhoria colocada em " + destino + ": " + peca + ".";
         } else {
             peca = jogo.comprarMelhoria(vaga);
             mensagem = "Melhoria comprada: " + peca + ".";
@@ -134,6 +162,8 @@ public class Controlador {
                 concluir("Yurt construída em " + destino + ".");
             } else if (modo == Modo.ENTREGAR) {
                 entregarTesouros(destino);
+            } else if (modo == Modo.OGEDEI) {
+                return; // a habilidade escolhe uma cidade pelos botões do painel
             } else {
                 jogo.moverPara(destino);
                 concluir("Peão movido para " + destino + ".");

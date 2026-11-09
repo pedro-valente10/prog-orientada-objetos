@@ -21,6 +21,7 @@ import javax.swing.SpinnerNumberModel;
 
 import model.ConselheiroInfo;
 import model.Jogo;
+import model.Coluna;
 
 /**
  * Janela principal (mapa + painel de controle) e, como janelas auxiliares, a cartela e as melhorias.
@@ -105,6 +106,21 @@ public class JanelaJogo extends JFrame {
     }
 
     // ---- diálogos ----
+    /** Altani escolhe qual dos dois peões pode agir neste turno. */
+    public int pedirPeao(List<String> posicoes) {
+        Object[] opcoes = { "Peão 1 — " + posicoes.get(0), "Peão 2 — " + posicoes.get(1) };
+        return JOptionPane.showOptionDialog(this, "Qual peão de Altani agirá neste turno?",
+                "Escolher peão", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, opcoes, opcoes[0]);
+    }
+    /** Jochi pode colocar qualquer melhoria em qualquer coluna com espaço. */
+    public Coluna pedirColunaMelhoria(List<Coluna> disponiveis) {
+        if (disponiveis.isEmpty()) return null;
+        Object escolha = JOptionPane.showInputDialog(this,
+                "Em qual coluna Jochi colocará a melhoria?", "Habilidade de Jochi",
+                JOptionPane.QUESTION_MESSAGE, null, disponiveis.toArray(), disponiveis.get(0));
+        return (Coluna) escolha;
+    }
     /**
      * Pergunta o que entregar ao conselheiro. Devolve a oferta (vazia quando a exigência é fixa e o
      * Model a aplica sozinho) ou null se o jogador desistir.

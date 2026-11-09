@@ -93,7 +93,7 @@ class PainelControle extends JPanel implements ObservadorIF {
         d.setFont(new Font("SansSerif", Font.BOLD, 13));
         String situacao = jogo.isJogoEncerrado() ? "partida encerrada"
                 : jogo.isTurnoAtivo() ? "coluna " + jogo.getColunaAtiva() : "escolha uma coluna";
-        d.drawString("Vez: " + vez + " | " + situacao, 14, 84);
+        d.drawString("Vez: " + vez + " (" + jogo.getHerdeiro(vez).getNome() + ") | " + situacao, 14, 84);
         d.setFont(new Font("SansSerif", Font.PLAIN, 12));
         d.drawString("Movimentos " + jogo.getMovimentosRestantes() + "   Punhos "
                 + jogo.getPunhosRestantes() + "   Khan " + (jogo.isKhanPendente() ? "obrigatório" : "-"), 14, 102);
@@ -155,15 +155,23 @@ class PainelControle extends JPanel implements ObservadorIF {
         List<String> cidades = jogo.getCidadesReveladas();
         for (int i = 0; i < 4; i++) {
             String cidade = i < cidades.size() ? cidades.get(i) : null;
-            botao(d, cidade == null ? "-" : "Atacar " + cidade,
+            botao(d, cidade == null ? "-" : ("OGEDEI".equals(modo) ? "Pegar " : "Atacar ") + cidade,
                     cidade == null ? null : jogo.getTesourosDaCidade(cidade) + " tesouro(s)",
                     cidade == null ? null : "ATAQUE:" + cidade, 4, i, ativo && cidade != null, false);
         }
         botao(d, "Cartela", "abrir janela", "CARTELA", 5, 0, true, false);
         botao(d, "Melhorias", "abrir janela", "MELHORIAS", 5, 1, true, false);
         botao(d, "Cartas", "abrir janela", "CARTAS", 5, 2, true, false);
-        botao(d, "Bônus", "escolher tesouro", "BONUS", 5, 3,
-                !jogo.getOpcoesTesouroBonus().isEmpty(), false);
+        boolean bonusPendente = !jogo.getOpcoesTesouroBonus().isEmpty();
+        model.Herdeiro herdeiro = jogo.getHerdeiro(jogo.getJogadorDaVez());
+        boolean habilidade = jogo.isTurnoAtivo() && !jogo.isHabilidadeUsadaNoTurno()
+                && (herdeiro == model.Herdeiro.CHAGATAI || herdeiro == model.Herdeiro.OGEDEI);
+        botao(d, bonusPendente ? "Bônus" : "Habilidade",
+                bonusPendente ? "escolher tesouro" : herdeiro == model.Herdeiro.CHAGATAI
+                        ? "cavalo → espada" : herdeiro == model.Herdeiro.OGEDEI
+                        ? "moeda → tesouro" : "indisponível",
+                bonusPendente ? "BONUS" : "HABILIDADE", 5, 3,
+                bonusPendente || habilidade, "OGEDEI".equals(modo));
     }
 
     private String descricaoProvincia(String id) {

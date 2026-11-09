@@ -35,6 +35,11 @@ class Partida {
     private final Cartas cartas;
     private final List<TipoTesouro> escolhaTesouroBonus = new ArrayList<>();
     private String ultimoBonus;
+    private final List<Melhoria> opcoesIniciaisJochi = new ArrayList<>();
+    private boolean habilidadeUsadaNoTurno;
+    private String cidadeOgedei;
+    private boolean descontoOgedei;
+
 
     // estado do turno
     private int indiceVez;
@@ -57,6 +62,10 @@ class Partida {
     private boolean jogoEncerrado;
 
     Partida(List<CorJogador> cores, Tabuleiro tabuleiro, long semente) {
+        this(cores, tabuleiro, semente, false);
+    }
+
+    Partida(List<CorJogador> cores, Tabuleiro tabuleiro, long semente, boolean comHerdeiros) {
         this.tabuleiro = tabuleiro;
         this.area = new AreaMelhorias(semente ^ 0x5EEDBEEFL);
         this.kurultai = new Kurultai(cores);
@@ -71,12 +80,21 @@ class Partida {
         pilhaTesouros.addAll(todos);
 
         for (int i = 0; i < cores.size(); i++) {
-            Jogador j = new Jogador(cores.get(i), Tabuleiro.KARAKORUM);
-            // 1º e 2º jogadores começam com 1 moeda; os demais com 2
+            Herdeiro herdeiro = comHerdeiros ? Herdeiro.daCor(cores.get(i)) : null;
+            Jogador j = new Jogador(cores.get(i), herdeiro, Tabuleiro.KARAKORUM);
+            // 1º e 2º jogadores começam com 1 moeda; os demais com 2.
             j.adicionarTributo(TipoTributo.MOEDA, i < 2 ? 1 : 2);
             jogadores.put(cores.get(i), j);
             ordem.add(cores.get(i));
-            tabuleiro.getParada(Tabuleiro.KARAKORUM).adicionarPeao(cores.get(i));
+            for (String posicao : j.getPosicoes()) tabuleiro.getParada(posicao).adicionarPeao(cores.get(i));
+            if (herdeiro == Herdeiro.TOLUI) {
+                j.usarIurta();
+                tabuleiro.getParada(Tabuleiro.KARAKORUM).adicionarIurta(j.getCor());
+            }
+            if (herdeiro == Herdeiro.JOCHI) {
+                opcoesIniciaisJochi.add(area.retirarTopo());
+                opcoesIniciaisJochi.add(area.retirarTopo());
+            }
         }
         for (Cidade c : tabuleiro.getCidadesReveladas()) {
             if (c.estaVazia()) {
@@ -107,11 +125,33 @@ class Partida {
     int getTesouroVirtual(TipoTesouro tipo) { return tesourosVirtuais.getOrDefault(tipo, 0); }
     Set<String> getParadasVisitadas() { return Collections.unmodifiableSet(paradasVisitadas); }
     List<String> getCartasAbertas() { return cartas.abertas(); }
+    List<String> getImagensCartasAbertas() { return cartas.imagensAbertas(); }
+    List<String> getImagensOpcoesSecretas(CorJogador cor) { return cartas.imagensOpcoes(cor); }
+    String getImagemCartaSecreta(CorJogador cor) { return cartas.imagemEscolhida(cor); }
     List<String> getOpcoesSecretas(CorJogador cor) { return cartas.opcoes(cor); }
     String getCartaSecreta(CorJogador cor) { return cartas.escolhida(cor); }
     int getVotosSecretos(CorJogador cor) { return cartas.votosSecretos(this, cor); }
     int getBonusRecebidos(CorJogador cor) { return cartas.bonusRecebidos(cor); }
     String getUltimoBonus() { return ultimoBonus; }
+    Herdeiro getHerdeiro(CorJogador cor) { return getJogador(cor).getHerdeiro(); }
+    List<String> getPosicoesPeoes(CorJogador cor) { return getJogador(cor).getPosicoes(); }
+    boolean isEscolhaPeaoPendente() { return jogadorAtual().isEscolhaPeaoPendente(); }
+    void escolherPeao(int indice) {
+        if (turnoAtivo) throw new RegraInvalidaException("Escolha o peão antes da coluna.");
+        jogadorAtual().escolherPeao(indice);
+    }
+    List<Melhoria> getOpcoesIniciaisJochi() {
+        return Collections.unmodifiableList(opcoesIniciaisJochi);
+    }
+    void escolherMelhoriaInicialJochi(int indice) {
+        if (opcoesIniciaisJochi.size() != 2 || indice < 0 || indice > 1)
+            throw new RegraInvalidaException("Escolha uma das duas melhorias iniciais de Jochi.");
+        for (Jogador j : jogadores.values()) if (j.getHerdeiro() == Herdeiro.JOCHI)
+            j.getTabuleiroIndividual().colocar(Coluna.BRANCA, opcoesIniciaisJochi.get(indice));
+        opcoesIniciaisJochi.clear();
+    }
+    boolean isHabilidadeUsadaNoTurno() { return habilidadeUsadaNoTurno; }
+
     List<TipoTesouro> getOpcoesTesouroBonus() {
         return Collections.unmodifiableList(new ArrayList<>(escolhaTesouroBonus));
     }
@@ -155,6 +195,10 @@ class Partida {
             throw new RegraInvalidaException("Não é possível ativar uma coluna agora.");
         if (coluna == null) throw new RegraInvalidaException("Escolha uma coluna.");
         TabuleiroJogador individual = jogadorAtual().getTabuleiroIndividual();
+        if (jogadorAtual().isEscolhaPeaoPendente())
+            throw new RegraInvalidaException("Escolha qual peão de Altani agirá neste turno.");
+        if (jogadorAtual().getHerdeiro() == Herdeiro.JOCHI && !opcoesIniciaisJochi.isEmpty())
+            throw new RegraInvalidaException("Escolha a melhoria inicial de Jochi.");
         if (individual.bonusBrancosPendentes() > 0)
             throw new RegraInvalidaException("Escolha primeiro a melhoria branca pendente.");
         TabuleiroJogador.Acoes acoes = individual.ativar(coluna);
@@ -197,6 +241,9 @@ class Partida {
         paradasVisitadas.clear();
         paradasVisitadas.add(jogadorAtual().getPosicao());
         tesourosRetiradosNoTurno.clear();
+        habilidadeUsadaNoTurno = false;
+        cidadeOgedei = null;
+        descontoOgedei = false;
     }
 
     /** Encerra o turno e passa a vez. Controla a última rodada após o gatilho de fim. */
@@ -218,6 +265,7 @@ class Partida {
         paradasVisitadas.clear();
         tesourosRetiradosNoTurno.clear();
         indiceVez = (indiceVez + 1) % ordem.size();
+        jogadorAtual().reiniciarEscolhaPeao();
         if (fimAcionado && indiceVez == 0) {
             viradasDeRodadaAposFim++;
             // 1ª virada: terminou a rodada atual; 2ª virada: terminou a rodada extra
@@ -367,9 +415,11 @@ class Partida {
     void construirIurta(String paradaId) {
         exigirTurnoAtivo();
         Jogador jogador = jogadorAtual();
-        if (!paradasVisitadas.contains(paradaId)) {
-            throw new RegraInvalidaException("O jogador não parou em " + paradaId + " neste turno.");
-        }
+        boolean visitada = paradasVisitadas.contains(paradaId);
+        boolean adjacenteTolui = jogador.getHerdeiro() == Herdeiro.TOLUI
+                && tabuleiro.getParada(jogador.getPosicao()).getVizinhas().contains(paradaId);
+        if (!visitada && !adjacenteTolui)
+            throw new RegraInvalidaException("A parada não foi visitada nem é adjacente a Tolui.");
         Parada parada = tabuleiro.getParada(paradaId);
         if (!parada.podeReceberIurta()) {
             throw new RegraInvalidaException("Não há espaço para iurta em " + paradaId + ".");
@@ -450,7 +500,9 @@ class Partida {
         int jaRetirados = tesourosRetiradosNoTurno.getOrDefault(cidadeId, 0);
         int custo = 0;
         for (int i = 0; i < quantidade; i++) {
-            custo += (jaRetirados + i == 0) ? 1 : 2;
+            boolean desconto = descontoOgedei && cidadeId.equals(cidadeOgedei)
+                    && jaRetirados + i == 1;
+            custo += (jaRetirados + i == 0 || desconto) ? 1 : 2;
         }
         Jogador jogador = jogadorAtual();
         int gastoVirtual = Math.min(custo, espadasVirtuais);
@@ -461,6 +513,8 @@ class Partida {
             jogador.adicionarTesouro(cidade.retirarTesouro(), 1);
         }
         tesourosRetiradosNoTurno.put(cidadeId, jaRetirados + quantidade);
+        if (descontoOgedei && cidadeId.equals(cidadeOgedei) && jaRetirados < 2)
+            descontoOgedei = false;
 
         if (cidade.estaVazia()) {
             conquistar(cidade, jogador);
@@ -481,16 +535,52 @@ class Partida {
         verificarGatilhoDeFim();
     }
 
+    /** Chagatai troca uma ação de cavalo por uma espada física, uma vez no turno. */
+    void usarHabilidadeChagatai() {
+        exigirTurnoAtivo();
+        if (jogadorAtual().getHerdeiro() != Herdeiro.CHAGATAI || habilidadeUsadaNoTurno
+                || movimentosRestantes < 1)
+            throw new RegraInvalidaException("Habilidade de Chagatai indisponível.");
+        movimentosRestantes--;
+        jogadorAtual().adicionarTributo(TipoTributo.ESPADA, 1);
+        habilidadeUsadaNoTurno = true;
+    }
+
+    /** Ogedei paga uma moeda para tomar um tesouro remoto, sem tomar o último. */
+    void usarHabilidadeOgedei(String cidadeId) {
+        exigirTurnoAtivo();
+        if (jogadorAtual().getHerdeiro() != Herdeiro.OGEDEI || habilidadeUsadaNoTurno)
+            throw new RegraInvalidaException("Habilidade de Ogedei indisponível.");
+        Cidade cidade = tabuleiro.getCidade(cidadeId);
+        if (cidade.isConquistada() || cidade.quantidadeTesouros() < 2)
+            throw new RegraInvalidaException("Ogedei não pode tomar o último tesouro.");
+        int gastoVirtual = Math.min(1, moedasVirtuais);
+        jogadorAtual().gastarTributo(TipoTributo.MOEDA, 1 - gastoVirtual);
+        moedasVirtuais -= gastoVirtual;
+        jogadorAtual().adicionarTesouro(cidade.retirarTesouro(), 1);
+        int anteriores = tesourosRetiradosNoTurno.getOrDefault(cidadeId, 0);
+        tesourosRetiradosNoTurno.put(cidadeId, anteriores + 1);
+        cidadeOgedei = cidadeId;
+        descontoOgedei = anteriores == 0;
+        habilidadeUsadaNoTurno = true;
+    }
+
     // ---------------------------------------------------------------- melhorias
     /** Compra da oferta ou do topo; a cor da peça define a coluna colorida. */
-    Melhoria comprarMelhoria(int vagaArea) { return comprarMelhoriaInterna(null, vagaArea); }
+    Melhoria comprarMelhoria(int vagaArea) { return comprarMelhoriaInterna(null, vagaArea, null); }
+
+    Melhoria comprarMelhoriaJochi(int vagaArea, Coluna destino) {
+        if (jogadorAtual().getHerdeiro() != Herdeiro.JOCHI || destino == null)
+            throw new RegraInvalidaException("Somente Jochi pode escolher livremente a coluna.");
+        return comprarMelhoriaInterna(null, vagaArea, destino);
+    }
 
     /** Sobrecarga legada: valida a coluna informada antes de qualquer débito. */
     void comprarMelhoria(Regiao coluna, int vagaArea) {
-        comprarMelhoriaInterna(coluna, vagaArea);
+        comprarMelhoriaInterna(coluna, vagaArea, null);
     }
 
-    private Melhoria comprarMelhoriaInterna(Regiao coluna, int vagaArea) {
+    private Melhoria comprarMelhoriaInterna(Regiao coluna, int vagaArea, Coluna destinoEscolhido) {
         exigirTurnoAtivo();
         if (vagaArea < -1 || vagaArea >= AreaMelhorias.VAGAS) {
             throw new RegraInvalidaException("Posição de melhoria inválida.");
@@ -499,7 +589,7 @@ class Partida {
         if (coluna != null && peca.cor() != coluna)
             throw new RegraInvalidaException("A cor da peça não corresponde à coluna.");
         TabuleiroJogador individual = jogadorAtual().getTabuleiroIndividual();
-        Coluna destino = Coluna.valueOf(peca.getCor());
+        Coluna destino = destinoEscolhido == null ? Coluna.valueOf(peca.getCor()) : destinoEscolhido;
         if (!individual.temEspaco(destino))
             throw new RegraInvalidaException("A coluna de melhorias está cheia.");
         int gastoVirtual = Math.min(Jogador.CUSTO_MELHORIA, moedasVirtuais);
@@ -507,7 +597,8 @@ class Partida {
         moedasVirtuais -= gastoVirtual;
         if (vagaArea < 0) area.retirarTopo();
         else area.retirar(vagaArea);
-        individual.colocar(destino, peca);
+        if (destinoEscolhido == null) individual.colocar(destino, peca);
+        else individual.colocarLivre(destino, peca);
         return peca;
     }
 
