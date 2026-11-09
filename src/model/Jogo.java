@@ -34,6 +34,7 @@ public class Jogo implements ObservadoIF {
     // estado de exibição (janelas), também comunicado pelo Observer
     private String cartelaExibida;
     private boolean melhoriasExibidas;
+    private boolean cartasExibidas;
 
     private Jogo() { }
 
@@ -62,6 +63,7 @@ public class Jogo implements ObservadoIF {
         this.partida = new Partida(cores, TabuleiroFactory.criarTabuleiroBasico(semente), semente);
         this.cartelaExibida = null;
         this.melhoriasExibidas = false;
+        this.cartasExibidas = false;
         notificar(EventoJogo.PARTIDA_INICIADA, null);
     }
 
@@ -85,6 +87,11 @@ public class Jogo implements ObservadoIF {
             case INFO_DETALHE: return ultimoDetalhe;
             default: throw new IllegalArgumentException("Índice de informação inválido: " + i);
         }
+    }
+
+    private void concluirAcao(EventoJogo evento, String detalhe) {
+        p().verificarCartasAbertas();
+        notificar(evento, detalhe);
     }
 
     private void notificar(EventoJogo evento, String detalhe) {
@@ -147,38 +154,38 @@ public class Jogo implements ObservadoIF {
     }
     public void coletarTributo(String provinciaId) {
         p().coletarTributo(provinciaId);
-        notificar(EventoJogo.TRIBUTO_COLETADO, provinciaId);
+        concluirAcao(EventoJogo.TRIBUTO_COLETADO, provinciaId);
     }
 
     public void construirIurta(String paradaId) {
         p().construirIurta(paradaId);
-        notificar(EventoJogo.IURTA_CONSTRUIDA, paradaId);
+        concluirAcao(EventoJogo.IURTA_CONSTRUIDA, paradaId);
     }
 
     public void posicionarKhan(String local) {
         p().posicionarKhan(local);
-        notificar(EventoJogo.KHAN_POSICIONADO, local);
+        concluirAcao(EventoJogo.KHAN_POSICIONADO, local);
     }
 
     public void atacarCidade(String cidadeId, int quantidade) {
         p().atacarCidade(cidadeId, quantidade);
-        notificar(EventoJogo.CIDADE_ATACADA, cidadeId);
+        concluirAcao(EventoJogo.CIDADE_ATACADA, cidadeId);
     }
 
     public void comprarMelhoria(String coluna, int vagaArea) {
         p().comprarMelhoria(Regiao.valueOf(coluna), vagaArea);
-        notificar(EventoJogo.MELHORIA_ADQUIRIDA, null);
+        concluirAcao(EventoJogo.MELHORIA_ADQUIRIDA, null);
     }
 
     public Melhoria comprarMelhoria(int vagaArea) {
         Melhoria peca = p().comprarMelhoria(vagaArea);
-        notificar(EventoJogo.MELHORIA_ADQUIRIDA, String.valueOf(peca.getId()));
+        concluirAcao(EventoJogo.MELHORIA_ADQUIRIDA, String.valueOf(peca.getId()));
         return peca;
     }
 
     public Melhoria receberBonusBranco(int vagaArea) {
         Melhoria peca = p().receberBonusBranco(vagaArea);
-        notificar(EventoJogo.MELHORIA_ADQUIRIDA, String.valueOf(peca.getId()));
+        concluirAcao(EventoJogo.MELHORIA_ADQUIRIDA, String.valueOf(peca.getId()));
         return peca;
     }
 
@@ -191,7 +198,37 @@ public class Jogo implements ObservadoIF {
             }
         }
         p().entregarTesouros(paradaId, convertida);
-        notificar(EventoJogo.TESOUROS_ENTREGUES, paradaId);
+        concluirAcao(EventoJogo.TESOUROS_ENTREGUES, paradaId);
+    }
+
+    // ---- cartas, bônus e consultas ----
+    public List<String> getCartasAbertas() { return p().getCartasAbertas(); }
+    public List<String> getOpcoesSecretas(String cor) {
+        return p().getOpcoesSecretas(CorJogador.valueOf(cor));
+    }
+    public String getCartaSecreta(String cor) {
+        return p().getCartaSecreta(CorJogador.valueOf(cor));
+    }
+    public int getVotosSecretos(String cor) {
+        return p().getVotosSecretos(CorJogador.valueOf(cor));
+    }
+    public int getBonusRecebidos(String cor) {
+        return p().getBonusRecebidos(CorJogador.valueOf(cor));
+    }
+    public String getUltimoBonus() { return p().getUltimoBonus(); }
+    public List<String> getOpcoesTesouroBonus() {
+        List<String> resultado = new ArrayList<>();
+        for (TipoTesouro tipo : p().getOpcoesTesouroBonus()) resultado.add(tipo.name());
+        return Collections.unmodifiableList(resultado);
+    }
+    public void escolherCartaSecreta(int indice) {
+        String cor = getJogadorDaVez();
+        p().escolherCartaSecreta(CorJogador.valueOf(cor), indice);
+        notificar(EventoJogo.CARTA_SECRETA_ESCOLHIDA, cor);
+    }
+    public void escolherTesouroBonus(int indice) {
+        p().escolherTesouroBonus(indice);
+        notificar(EventoJogo.TESOURO_BONUS_ESCOLHIDO, getJogadorDaVez());
     }
 
     // ---- consultas ----
@@ -285,7 +322,7 @@ public class Jogo implements ObservadoIF {
     public int getOcupacaoKurultai() { return p().getKurultai().getOcupacao(); }
     public int getLimiteKurultai() { return p().getKurultai().getLimite(); }
 
-    /** Votos do Kurultai somados aos votos de influência regional, na ordem dos turnos. */
+    /** Votos do Kurultai, influência regional e carta secreta, na ordem dos turnos. */
     public Map<String, Integer> getVotosFinais() {
         Map<CorJogador, Integer> total = p().votosFinais();
         Map<String, Integer> resultado = new LinkedHashMap<>();
@@ -322,6 +359,17 @@ public class Jogo implements ObservadoIF {
     }
 
     public boolean isMelhoriasExibidas() { return melhoriasExibidas; }
+
+    public void exibirCartas() {
+        cartasExibidas = true;
+        notificar(EventoJogo.CARTAS_EXIBIDAS, null);
+    }
+    public void ocultarCartas() {
+        if (!cartasExibidas) return;
+        cartasExibidas = false;
+        notificar(EventoJogo.CARTAS_OCULTADAS, null);
+    }
+    public boolean isCartasExibidas() { return cartasExibidas; }
 
     public List<String> getVencedores() {
         List<String> nomes = new ArrayList<>();

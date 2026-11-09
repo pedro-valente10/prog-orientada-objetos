@@ -131,6 +131,19 @@ public class TerceiraIteracaoTest {
         assertEquals(total, gravador.eventos.size());
     }
 
+    @Test public void janelaDeCartasEEscolhaSecretaNotificam() {
+        jogo.exibirCartas();
+        assertEquals(EventoJogo.CARTAS_EXIBIDAS, gravador.ultimo());
+        assertTrue(jogo.isCartasExibidas());
+        assertEquals(2, jogo.getOpcoesSecretas("VERMELHO").size());
+        jogo.escolherCartaSecreta(0);
+        assertEquals(EventoJogo.CARTA_SECRETA_ESCOLHIDA, gravador.ultimo());
+        assertNotNull(jogo.getCartaSecreta("VERMELHO"));
+        jogo.ocultarCartas();
+        assertEquals(EventoJogo.CARTAS_OCULTADAS, gravador.ultimo());
+        assertFalse(jogo.isCartasExibidas());
+    }
+
     @Test public void cartelaDeJogadorInexistenteELancaExcecao() {
         try {
             jogo.exibirCartela("PRETO");

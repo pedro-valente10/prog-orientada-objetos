@@ -1,21 +1,23 @@
 package controller;
 
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import model.Jogo;
 import view.JanelaJogo;
 
-/** Ponto de entrada. As janelas iniciais não fazem parte desta etapa: o nº de jogadores é fixo. */
+/** Ponto de entrada: escolhe 2 a 5 jogadores e abre a partida Swing. */
 public class Main {
-
-    private static final int NUMERO_JOGADORES = 3;
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
+            @Override public void run() {
+                Object[] quantidades = { "2", "3", "4", "5" };
+                Object escolha = JOptionPane.showInputDialog(null,
+                        "Quantos jogadores participarão?", "Herdeiros do Khan",
+                        JOptionPane.QUESTION_MESSAGE, null, quantidades, "3");
+                if (escolha == null) return;
                 Jogo jogo = Jogo.getInstance();
-                jogo.novaPartida(NUMERO_JOGADORES);
+                jogo.novaPartida(Integer.parseInt(escolha.toString()));
                 JanelaJogo janela = new JanelaJogo(jogo);
                 new Controlador(jogo, janela).iniciar();
             }

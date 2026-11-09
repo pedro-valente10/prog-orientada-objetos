@@ -30,6 +30,15 @@ class TabuleiroJogador {
     }
 
     boolean temEspaco(Coluna coluna) { return quantidadeMelhorias(coluna) < LINHAS; }
+    boolean temLinhaCompleta() {
+        for (int linha=0; linha<LINHAS; linha++) {
+            boolean completa = true;
+            for (Coluna coluna : Coluna.values())
+                if (pecas[coluna.ordinal()][linha] == null) completa = false;
+            if (completa) return true;
+        }
+        return false;
+    }
     int bonusBrancosPendentes() { return bonusBrancosPendentes; }
 
     List<Melhoria> melhorias(Coluna coluna) {

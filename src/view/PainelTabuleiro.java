@@ -73,11 +73,13 @@ class PainelTabuleiro extends JPanel implements ObservadorIF {
     }
 
     String paradaEm(int x, int y) {
+        double xLogico = x * LARGURA / (double) Math.max(1, getWidth());
+        double yLogico = y * ALTURA / (double) Math.max(1, getHeight());
         ParadaInfo maisProxima = null;
         double melhor = Double.MAX_VALUE;
         for (ParadaInfo parada : paradas) {
-            double dx = x - parada.getX() * LARGURA;
-            double dy = y - parada.getY() * ALTURA;
+            double dx = xLogico - parada.getX() * LARGURA;
+            double dy = yLogico - parada.getY() * ALTURA;
             double distancia = dx * dx + dy * dy;
             int raio = parada.isKarakorum() ? 45 : parada.isDupla() ? 27 : 23;
             if (distancia <= raio * raio && distancia < melhor) {
@@ -91,6 +93,7 @@ class PainelTabuleiro extends JPanel implements ObservadorIF {
     @Override protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g.create();
+        g2.scale(getWidth() / (double) LARGURA, getHeight() / (double) ALTURA);
         g2.drawImage(imagemTabuleiro, 0, 0, null);
         g2.setComposite(AlphaComposite.SrcOver.derive(.48f));
         g2.setColor(new Color(20, 22, 31));

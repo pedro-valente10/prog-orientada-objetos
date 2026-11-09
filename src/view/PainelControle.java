@@ -133,6 +133,7 @@ class PainelControle extends JPanel implements ObservadorIF {
         d.setColor(new Color(180, 194, 217));
         d.setFont(new Font("SansSerif", Font.PLAIN, 11));
         d.drawString("Pilha de melhorias: " + jogo.getMelhoriasNaPilha() + " peças", 14, 244);
+        d.drawString("Bônus recebidos: " + jogo.getBonusRecebidos(jogo.getJogadorDaVez()), 286, 244);
     }
 
     private void desenharAcoes(Graphics2D d) {
@@ -160,6 +161,9 @@ class PainelControle extends JPanel implements ObservadorIF {
         }
         botao(d, "Cartela", "abrir janela", "CARTELA", 5, 0, true, false);
         botao(d, "Melhorias", "abrir janela", "MELHORIAS", 5, 1, true, false);
+        botao(d, "Cartas", "abrir janela", "CARTAS", 5, 2, true, false);
+        botao(d, "Bônus", "escolher tesouro", "BONUS", 5, 3,
+                !jogo.getOpcoesTesouroBonus().isEmpty(), false);
     }
 
     private String descricaoProvincia(String id) {
@@ -186,13 +190,14 @@ class PainelControle extends JPanel implements ObservadorIF {
     }
 
     private void desenharMensagem(Graphics2D d) {
+        boolean compacto = getHeight() < 800;
         d.setColor(new Color(22, 25, 36));
-        d.fillRoundRect(14, 566, 452, 112, 8, 8);
+        d.fillRoundRect(14, 566, 452, compacto ? 80 : 112, 8, 8);
         d.setColor(Color.WHITE);
         d.setFont(new Font("SansSerif", Font.BOLD, 12));
         d.drawString("Mensagem", 24, 585);
         d.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        desenharTextoQuebrado(d, mensagem, 24, 604, 432, 16, 5);
+        desenharTextoQuebrado(d, mensagem, 24, 604, 432, 16, compacto ? 3 : 5);
 
         d.setColor(new Color(200, 211, 230));
         d.setFont(new Font("SansSerif", Font.PLAIN, 11));
@@ -203,7 +208,8 @@ class PainelControle extends JPanel implements ObservadorIF {
             "4) Yurt / Entregar: ligue o modo e clique numa parada visitada.",
             "5) Encerrar: passa a vez (o Khan obrigatório precisa ser usado)."
         };
-        for (int i = 0; i < ajuda.length; i++) d.drawString(ajuda[i], 14, 706 + i * 17);
+        for (int i = 0; i < ajuda.length; i++)
+            d.drawString(ajuda[i], 14, (compacto ? 660 : 706) + i * (compacto ? 14 : 17));
     }
 
     private static void desenharTextoQuebrado(Graphics2D d, String texto, int x, int y, int largura,
