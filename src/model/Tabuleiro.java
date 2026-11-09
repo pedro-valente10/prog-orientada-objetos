@@ -2,6 +2,8 @@ package model;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -60,6 +62,13 @@ class Tabuleiro {
 
     Collection<Cidade> getCidadesReveladas() {
         return Collections.unmodifiableCollection(cidadesReveladas.values());
+    }
+
+    /** Localizações impressas de todas as cidades, inclusive as ainda não reveladas. */
+    Collection<Cidade> getTodasCidades() {
+        List<Cidade> todas = new ArrayList<>(cidadesReveladas.values());
+        todas.addAll(pilhaCidades);
+        return Collections.unmodifiableList(todas);
     }
 
     Collection<Parada> getParadas() { return Collections.unmodifiableCollection(paradas.values()); }

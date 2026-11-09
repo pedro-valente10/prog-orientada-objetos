@@ -21,6 +21,7 @@ import javax.swing.SpinnerNumberModel;
 
 import model.ConselheiroInfo;
 import model.Jogo;
+import model.Coluna;
 
 /**
  * Janela principal (mapa + painel de controle) e, como janelas auxiliares, a cartela e as melhorias.
@@ -33,6 +34,7 @@ public class JanelaJogo extends JFrame {
     private final PainelControle painelControle;
     private final JanelaCartela janelaCartela;
     private final JanelaMelhorias janelaMelhorias;
+    private final JanelaCartas janelaCartas;
 
     public JanelaJogo(Jogo jogo) {
         super("Herdeiros do Khan");
@@ -42,19 +44,24 @@ public class JanelaJogo extends JFrame {
         painelControle = new PainelControle(jogo);
         janelaCartela = new JanelaCartela(this, jogo);
         janelaMelhorias = new JanelaMelhorias(this, jogo);
+        janelaCartas = new JanelaCartas(this, jogo);
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(painelTabuleiro, BorderLayout.CENTER);
         getContentPane().add(painelControle, BorderLayout.EAST);
         pack();
         if (getWidth() > 1400 || getHeight() > 1050)
             throw new IllegalStateException("Janela acima do limite de 1400 x 1050.");
-        setLocationRelativeTo(null);
+        Rectangle areaUtil = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        setSize(Math.min(getWidth(), areaUtil.width), Math.min(getHeight(), areaUtil.height));
+        setLocation(areaUtil.x + (areaUtil.width - getWidth()) / 2,
+                areaUtil.y + (areaUtil.height - getHeight()) / 2);
 
         // Observer: a View se registra no Model para ser avisada das mudanças de estado.
         jogo.add(painelTabuleiro);
         jogo.add(painelControle);
         jogo.add(janelaCartela);
         jogo.add(janelaMelhorias);
+        jogo.add(janelaCartas);
     }
 
     // ---- ouvintes (instalados pelo Controller) ----
@@ -62,14 +69,17 @@ public class JanelaJogo extends JFrame {
     public void addOuvinteControle(MouseListener ouvinte) { painelControle.addMouseListener(ouvinte); }
     public void addOuvinteCartela(MouseListener ouvinte) { janelaCartela.getPainel().addMouseListener(ouvinte); }
     public void addOuvinteMelhorias(MouseListener ouvinte) { janelaMelhorias.getPainel().addMouseListener(ouvinte); }
+    public void addOuvinteCartas(MouseListener ouvinte) { janelaCartas.getPainel().addMouseListener(ouvinte); }
     public void addOuvinteFechamentoCartela(WindowListener ouvinte) { janelaCartela.addWindowListener(ouvinte); }
     public void addOuvinteFechamentoMelhorias(WindowListener ouvinte) { janelaMelhorias.addWindowListener(ouvinte); }
+    public void addOuvinteFechamentoCartas(WindowListener ouvinte) { janelaCartas.addWindowListener(ouvinte); }
 
     // ---- consultas de cliques ----
     public String paradaEm(int x, int y) { return painelTabuleiro.paradaEm(x, y); }
     public String acaoEm(int x, int y) { return painelControle.acaoEm(x, y); }
     public String acaoNaCartela(int x, int y) { return janelaCartela.getPainel().acaoEm(x, y); }
     public String acaoNasMelhorias(int x, int y) { return janelaMelhorias.getPainel().acaoEm(x, y); }
+    public String acaoNasCartas(int x, int y) { return janelaCartas.getPainel().acaoEm(x, y); }
 
     // ---- estado puramente visual ----
     public void setModo(String modo) { painelControle.setModo(modo); }
@@ -80,17 +90,37 @@ public class JanelaJogo extends JFrame {
         Rectangle tela = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
         Dimension cartela = janelaCartela.getSize();
         Dimension melhorias = janelaMelhorias.getSize();
-        int larguraDireita = Math.max(cartela.width, melhorias.width);
-        if (tela.width >= getWidth() + larguraDireita) {
+        int larguraDireita = Math.max(cartela.width, Math.max(melhorias.width, janelaCartas.getWidth()));
+        boolean cabemAoLado = tela.width >= getWidth() + larguraDireita;
+        if (cabemAoLado)
             setLocation(tela.x + (tela.width - getWidth() - larguraDireita) / 2, getY());
-        }
-        int xDireita = getX() + getWidth();
-        if (xDireita + larguraDireita > tela.x + tela.width) xDireita = tela.x + tela.width - larguraDireita;
-        janelaCartela.setLocation(xDireita, getY());
-        janelaMelhorias.setLocation(xDireita, getY() + cartela.height);
+        // Em telas menores, as janelas auxiliares cobrem o lado esquerdo do mapa,
+        // deixando sempre livres os botões do painel de controle à direita.
+        int xDireita = cabemAoLado ? getX() + getWidth() : getX();
+        janelaCartela.setLocation(xDireita, Math.max(tela.y,
+                Math.min(getY(), tela.y + tela.height - cartela.height)));
+        janelaMelhorias.setLocation(xDireita, Math.max(tela.y,
+                Math.min(getY() + cartela.height, tela.y + tela.height - melhorias.height)));
+        janelaCartas.setLocation(xDireita, Math.max(tela.y,
+                Math.min(getY() + cartela.height, tela.y + tela.height - janelaCartas.getHeight())));
     }
 
     // ---- diálogos ----
+    /** Altani escolhe qual dos dois peões pode agir neste turno. */
+    public int pedirPeao(List<String> posicoes) {
+        Object[] opcoes = { "Peão 1 — " + posicoes.get(0), "Peão 2 — " + posicoes.get(1) };
+        return JOptionPane.showOptionDialog(this, "Qual peão de Altani agirá neste turno?",
+                "Escolher peão", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, opcoes, opcoes[0]);
+    }
+    /** Jochi pode colocar qualquer melhoria em qualquer coluna com espaço. */
+    public Coluna pedirColunaMelhoria(List<Coluna> disponiveis) {
+        if (disponiveis.isEmpty()) return null;
+        Object escolha = JOptionPane.showInputDialog(this,
+                "Em qual coluna Jochi colocará a melhoria?", "Habilidade de Jochi",
+                JOptionPane.QUESTION_MESSAGE, null, disponiveis.toArray(), disponiveis.get(0));
+        return (Coluna) escolha;
+    }
     /**
      * Pergunta o que entregar ao conselheiro. Devolve a oferta (vazia quando a exigência é fixa e o
      * Model a aplica sozinho) ou null se o jogador desistir.
@@ -122,6 +152,15 @@ public class JanelaJogo extends JFrame {
             if (quantidade > 0) oferta.put(tipos.get(i), quantidade);
         }
         return oferta;
+    }
+
+    /** Escolha obrigatória do bônus de três tesouros; -1 permite voltar pelo botão Bônus. */
+    public int pedirTesouroBonus(List<String> opcoes) {
+        if (opcoes.isEmpty()) return -1;
+        Object escolha = JOptionPane.showInputDialog(this,
+                "Escolha um dos três tesouros do bônus:", "Bônus de tesouro",
+                JOptionPane.QUESTION_MESSAGE, null, opcoes.toArray(), opcoes.get(0));
+        return escolha == null ? -1 : opcoes.indexOf(escolha.toString());
     }
 
     public void mostrarFimDeJogo(List<String> vencedores, Map<String, Integer> votos) {

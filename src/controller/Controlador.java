@@ -25,7 +25,7 @@ import view.JanelaJogo;
 public class Controlador {
 
     /** O que o próximo clique em uma parada do mapa significa. */
-    private enum Modo { MOVER, YURT, ENTREGAR }
+    private enum Modo { MOVER, YURT, ENTREGAR, OGEDEI }
 
     private final Jogo jogo;
     private final JanelaJogo janela;
@@ -40,8 +40,10 @@ public class Controlador {
         janela.addOuvinteControle(new OuvinteControle());
         janela.addOuvinteCartela(new OuvinteCartela());
         janela.addOuvinteMelhorias(new OuvinteMelhorias());
+        janela.addOuvinteCartas(new OuvinteCartas());
         janela.addOuvinteFechamentoCartela(new FechamentoCartela());
         janela.addOuvinteFechamentoMelhorias(new FechamentoMelhorias());
+        janela.addOuvinteFechamentoCartas(new FechamentoCartas());
     }
 
     /** Abre a janela principal e a cartela do primeiro jogador: a partida começa aqui. */
@@ -49,6 +51,7 @@ public class Controlador {
         janela.setVisible(true);
         janela.posicionarJanelas();
         jogo.exibirCartela(jogo.getJogadorDaVez());
+        jogo.exibirCartas();
         janela.mostrarMensagem("Vez de " + jogo.getJogadorDaVez() + ". " + proximoPasso());
     }
 
@@ -66,8 +69,33 @@ public class Controlador {
                 jogo.exibirCartela(cor == null ? jogo.getJogadorDaVez() : cor);
             } else if ("MELHORIAS".equals(operacao)) {
                 jogo.exibirMelhorias();
+            } else if ("CARTAS".equals(operacao)) {
+                jogo.exibirCartas();
+            } else if ("SECRETA".equals(operacao)) {
+                jogo.escolherCartaSecreta(Integer.parseInt(argumento));
+                jogo.ocultarCartas();
+                concluir("Carta secreta escolhida.");
+            } else if ("BONUS".equals(operacao)) {
+                resolverBonus();
+                concluir("Bônus de tesouro resolvido.");
+            } else if ("HABILIDADE".equals(operacao)) {
+                model.Herdeiro herdeiro = jogo.getHerdeiro(jogo.getJogadorDaVez());
+                if (herdeiro == model.Herdeiro.CHAGATAI) {
+                    jogo.usarHabilidadeChagatai();
+                    concluir("Chagatai trocou 1 movimento por 1 espada.");
+                } else if (herdeiro == model.Herdeiro.OGEDEI) {
+                    alternarModo(Modo.OGEDEI, "Clique em Pegar na cidade desejada (mínimo de 2 tesouros). ");
+                }
             } else if ("COLUNA".equals(operacao)) {
+                if (jogo.getCartaSecreta(jogo.getJogadorDaVez()) == null)
+                    throw new RegraInvalidaException("Escolha sua carta secreta na janela Cartas.");
+                if (jogo.isEscolhaPeaoPendente()) {
+                    int peao = janela.pedirPeao(jogo.getPosicoesPeoes(jogo.getJogadorDaVez()));
+                    if (peao < 0) return;
+                    jogo.escolherPeao(peao);
+                }
                 jogo.ativarColuna(Coluna.valueOf(argumento));
+                jogo.ocultarCartela();
                 definirModo(Modo.MOVER);
                 concluir("Coluna " + argumento + " ativada.");
             } else if ("FIM".equals(operacao)) {
@@ -87,8 +115,14 @@ public class Controlador {
                 jogo.coletarTributo(argumento);
                 concluir("Tributo coletado em " + argumento + ".");
             } else if ("ATAQUE".equals(operacao)) {
-                jogo.atacarCidade(argumento, 1);
-                concluir("Um tesouro retirado de " + argumento + ".");
+                if (modo == Modo.OGEDEI) {
+                    jogo.usarHabilidadeOgedei(argumento);
+                    definirModo(Modo.MOVER);
+                    concluir("Ogedei tomou um tesouro de " + argumento + " por 1 moeda.");
+                } else {
+                    jogo.atacarCidade(argumento, 1);
+                    concluir("Um tesouro retirado de " + argumento + ".");
+                }
             }
         } catch (RegraInvalidaException e) {
             janela.mostrarMensagem(e.getMessage());
@@ -101,10 +135,20 @@ public class Controlador {
         if (jogo.getBonusBrancosPendentes(jogo.getJogadorDaVez()) > 0) {
             peca = jogo.receberBonusBranco(vaga);
             mensagem = "Melhoria branca gratuita: " + peca + ".";
+        } else if (jogo.getHerdeiro(jogo.getJogadorDaVez()) == model.Herdeiro.JOCHI) {
+            java.util.List<Coluna> disponiveis = new java.util.ArrayList<>();
+            for (Coluna coluna : Coluna.values())
+                if (jogo.getMelhorias(jogo.getJogadorDaVez(), coluna).contains(null))
+                    disponiveis.add(coluna);
+            Coluna destino = janela.pedirColunaMelhoria(disponiveis);
+            if (destino == null) return;
+            peca = jogo.comprarMelhoriaJochi(vaga, destino);
+            mensagem = "Melhoria colocada em " + destino + ": " + peca + ".";
         } else {
             peca = jogo.comprarMelhoria(vaga);
             mensagem = "Melhoria comprada: " + peca + ".";
         }
+        jogo.ocultarMelhorias();
         concluir(mensagem);
     }
 
@@ -118,6 +162,8 @@ public class Controlador {
                 concluir("Yurt construída em " + destino + ".");
             } else if (modo == Modo.ENTREGAR) {
                 entregarTesouros(destino);
+            } else if (modo == Modo.OGEDEI) {
+                return; // a habilidade escolhe uma cidade pelos botões do painel
             } else {
                 jogo.moverPara(destino);
                 concluir("Peão movido para " + destino + ".");
@@ -138,7 +184,9 @@ public class Controlador {
         int antes = jogo.getVotos(cor);
         jogo.entregarTesouros(paradaId, oferta);
         definirModo(Modo.MOVER);
-        concluir("Tesouros entregues em " + paradaId + ": +" + (jogo.getVotos(cor) - antes) + " voto(s).");
+        String bonus = jogo.getUltimoBonus();
+        concluir("Tesouros entregues em " + paradaId + ": +" + (jogo.getVotos(cor) - antes)
+                + " voto(s)." + (bonus == null ? "" : " Bônus: " + bonus + "."));
     }
 
     private ConselheiroInfo conselheiroDe(String paradaId) {
@@ -169,12 +217,22 @@ public class Controlador {
      * as fases da partida (bônus branco pendente, aviso de fim acionado, fim de jogo).
      */
     private void concluir(String mensagem) {
+        if (!jogo.getOpcoesTesouroBonus().isEmpty()) resolverBonus();
+        if (!jogo.isTurnoAtivo() && !jogo.isJogoEncerrado()
+                && jogo.getCartaSecreta(jogo.getJogadorDaVez()) == null) jogo.exibirCartas();
         String fase = avancarFase();
         janela.mostrarMensagem(mensagem + fase + " " + proximoPasso());
         if (jogo.isJogoEncerrado() && !fimDeJogoExibido) {
             fimDeJogoExibido = true;
             janela.mostrarFimDeJogo(jogo.getVencedores(), jogo.getVotosFinais());
         }
+    }
+
+    private void resolverBonus() {
+        java.util.List<String> opcoes = jogo.getOpcoesTesouroBonus();
+        if (opcoes.isEmpty()) return;
+        int escolha = janela.pedirTesouroBonus(opcoes);
+        if (escolha >= 0) jogo.escolherTesouroBonus(escolha);
     }
 
     private String avancarFase() {
@@ -193,7 +251,9 @@ public class Controlador {
     private String proximoPasso() {
         if (jogo.isJogoEncerrado()) return "Partida encerrada.";
         String vez = jogo.getJogadorDaVez();
+        if (!jogo.getOpcoesTesouroBonus().isEmpty()) return "Escolha o tesouro do bônus.";
         if (!jogo.isTurnoAtivo()) {
+            if (jogo.getCartaSecreta(vez) == null) return "Escolha sua carta secreta na janela Cartas.";
             return jogo.getBonusBrancosPendentes(vez) > 0
                     ? "Escolha a melhoria branca pendente."
                     : "Ative uma coluna na cartela.";
@@ -227,6 +287,12 @@ public class Controlador {
         }
     }
 
+    private class OuvinteCartas extends MouseAdapter {
+        @Override public void mouseClicked(MouseEvent e) {
+            executarAcao(janela.acaoNasCartas(e.getX(), e.getY()));
+        }
+    }
+
     /** Fechar a janela pelo botão da barra de título também é uma mudança de estado do Model. */
     private class FechamentoCartela extends WindowAdapter {
         @Override public void windowClosing(WindowEvent e) { jogo.ocultarCartela(); }
@@ -234,5 +300,9 @@ public class Controlador {
 
     private class FechamentoMelhorias extends WindowAdapter {
         @Override public void windowClosing(WindowEvent e) { jogo.ocultarMelhorias(); }
+    }
+
+    private class FechamentoCartas extends WindowAdapter {
+        @Override public void windowClosing(WindowEvent e) { jogo.ocultarCartas(); }
     }
 }

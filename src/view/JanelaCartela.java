@@ -2,6 +2,7 @@ package view;
 
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JTabbedPane;
 
 import model.EventoJogo;
 import model.Jogo;
@@ -16,11 +17,16 @@ class JanelaCartela extends JDialog implements ObservadorIF {
     private static final long serialVersionUID = 1L;
 
     private final PainelCartela painel;
+    private final PainelCartelaOriginal original;
 
     JanelaCartela(JFrame dono, Jogo jogo) {
         super(dono, "Cartela", false);
         painel = new PainelCartela(jogo);
-        getContentPane().add(painel);
+        original = new PainelCartelaOriginal(jogo);
+        JTabbedPane abas = new JTabbedPane();
+        abas.addTab("Jogo", painel);
+        abas.addTab("Cartela original", original);
+        getContentPane().add(abas);
         setResizable(false);
         pack();
     }
@@ -36,5 +42,6 @@ class JanelaCartela extends JDialog implements ObservadorIF {
             setVisible(false);
         }
         painel.repaint();
+        original.repaint();
     }
 }

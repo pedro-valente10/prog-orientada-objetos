@@ -13,7 +13,10 @@ import org.junit.runners.Suite;
     FimDeJogoTest.class,
     PontuacaoTest.class,
     SegundaIteracaoTest.class,
-    TerceiraIteracaoTest.class
+    TerceiraIteracaoTest.class,
+    CartasTest.class,
+    HerdeirosTest.class,
+    view.PainelControleTest.class
 })
 public class SuiteDeTestes {
 }

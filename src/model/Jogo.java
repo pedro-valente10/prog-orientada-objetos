@@ -34,6 +34,7 @@ public class Jogo implements ObservadoIF {
     // estado de exibição (janelas), também comunicado pelo Observer
     private String cartelaExibida;
     private boolean melhoriasExibidas;
+    private boolean cartasExibidas;
 
     private Jogo() { }
 
@@ -55,13 +56,28 @@ public class Jogo implements ObservadoIF {
         if (numeroJogadores < 2 || numeroJogadores > 5) {
             throw new IllegalArgumentException("O jogo é para 2 a 5 jogadores.");
         }
+        List<Herdeiro> escolhidos = new ArrayList<>();
+        for (int i = 0; i < numeroJogadores; i++)
+            escolhidos.add(Herdeiro.daCor(CorJogador.values()[i]));
+        iniciarComHerdeiros(escolhidos, semente);
+    }
+
+    /** Nova partida com seleção explícita dos herdeiros, na ordem dos turnos. */
+    public void novaPartidaComHerdeiros(List<Herdeiro> escolhidos) {
+        iniciarComHerdeiros(escolhidos, System.nanoTime());
+    }
+
+    private void iniciarComHerdeiros(List<Herdeiro> escolhidos, long semente) {
+        if (escolhidos == null || escolhidos.size() < 2 || escolhidos.size() > 5
+                || new HashSet<Herdeiro>(escolhidos).size() != escolhidos.size()
+                || escolhidos.contains(null))
+            throw new IllegalArgumentException("Escolha de 2 a 5 herdeiros diferentes.");
         List<CorJogador> cores = new ArrayList<>();
-        for (int i = 0; i < numeroJogadores; i++) {
-            cores.add(CorJogador.values()[i]);
-        }
-        this.partida = new Partida(cores, TabuleiroFactory.criarTabuleiroBasico(semente), semente);
+        for (Herdeiro herdeiro : escolhidos) cores.add(herdeiro.cor());
+        this.partida = new Partida(cores, TabuleiroFactory.criarTabuleiroBasico(semente), semente, true);
         this.cartelaExibida = null;
         this.melhoriasExibidas = false;
+        this.cartasExibidas = false;
         notificar(EventoJogo.PARTIDA_INICIADA, null);
     }
 
@@ -85,6 +101,11 @@ public class Jogo implements ObservadoIF {
             case INFO_DETALHE: return ultimoDetalhe;
             default: throw new IllegalArgumentException("Índice de informação inválido: " + i);
         }
+    }
+
+    private void concluirAcao(EventoJogo evento, String detalhe) {
+        p().verificarCartasAbertas();
+        notificar(evento, detalhe);
     }
 
     private void notificar(EventoJogo evento, String detalhe) {
@@ -147,38 +168,44 @@ public class Jogo implements ObservadoIF {
     }
     public void coletarTributo(String provinciaId) {
         p().coletarTributo(provinciaId);
-        notificar(EventoJogo.TRIBUTO_COLETADO, provinciaId);
+        concluirAcao(EventoJogo.TRIBUTO_COLETADO, provinciaId);
     }
 
     public void construirIurta(String paradaId) {
         p().construirIurta(paradaId);
-        notificar(EventoJogo.IURTA_CONSTRUIDA, paradaId);
+        concluirAcao(EventoJogo.IURTA_CONSTRUIDA, paradaId);
     }
 
     public void posicionarKhan(String local) {
         p().posicionarKhan(local);
-        notificar(EventoJogo.KHAN_POSICIONADO, local);
+        concluirAcao(EventoJogo.KHAN_POSICIONADO, local);
     }
 
     public void atacarCidade(String cidadeId, int quantidade) {
         p().atacarCidade(cidadeId, quantidade);
-        notificar(EventoJogo.CIDADE_ATACADA, cidadeId);
+        concluirAcao(EventoJogo.CIDADE_ATACADA, cidadeId);
     }
 
     public void comprarMelhoria(String coluna, int vagaArea) {
         p().comprarMelhoria(Regiao.valueOf(coluna), vagaArea);
-        notificar(EventoJogo.MELHORIA_ADQUIRIDA, null);
+        concluirAcao(EventoJogo.MELHORIA_ADQUIRIDA, null);
     }
 
     public Melhoria comprarMelhoria(int vagaArea) {
         Melhoria peca = p().comprarMelhoria(vagaArea);
-        notificar(EventoJogo.MELHORIA_ADQUIRIDA, String.valueOf(peca.getId()));
+        concluirAcao(EventoJogo.MELHORIA_ADQUIRIDA, String.valueOf(peca.getId()));
+        return peca;
+    }
+
+    public Melhoria comprarMelhoriaJochi(int vagaArea, Coluna destino) {
+        Melhoria peca = p().comprarMelhoriaJochi(vagaArea, destino);
+        concluirAcao(EventoJogo.MELHORIA_ADQUIRIDA, String.valueOf(peca.getId()));
         return peca;
     }
 
     public Melhoria receberBonusBranco(int vagaArea) {
         Melhoria peca = p().receberBonusBranco(vagaArea);
-        notificar(EventoJogo.MELHORIA_ADQUIRIDA, String.valueOf(peca.getId()));
+        concluirAcao(EventoJogo.MELHORIA_ADQUIRIDA, String.valueOf(peca.getId()));
         return peca;
     }
 
@@ -191,7 +218,44 @@ public class Jogo implements ObservadoIF {
             }
         }
         p().entregarTesouros(paradaId, convertida);
-        notificar(EventoJogo.TESOUROS_ENTREGUES, paradaId);
+        concluirAcao(EventoJogo.TESOUROS_ENTREGUES, paradaId);
+    }
+
+    // ---- cartas, bônus e consultas ----
+    public List<String> getCartasAbertas() { return p().getCartasAbertas(); }
+    public List<String> getImagensCartasAbertas() { return p().getImagensCartasAbertas(); }
+    public List<String> getImagensOpcoesSecretas(String cor) {
+        return p().getImagensOpcoesSecretas(CorJogador.valueOf(cor));
+    }
+    public String getImagemCartaSecreta(String cor) {
+        return p().getImagemCartaSecreta(CorJogador.valueOf(cor));
+    }
+    public List<String> getOpcoesSecretas(String cor) {
+        return p().getOpcoesSecretas(CorJogador.valueOf(cor));
+    }
+    public String getCartaSecreta(String cor) {
+        return p().getCartaSecreta(CorJogador.valueOf(cor));
+    }
+    public int getVotosSecretos(String cor) {
+        return p().getVotosSecretos(CorJogador.valueOf(cor));
+    }
+    public int getBonusRecebidos(String cor) {
+        return p().getBonusRecebidos(CorJogador.valueOf(cor));
+    }
+    public String getUltimoBonus() { return p().getUltimoBonus(); }
+    public List<String> getOpcoesTesouroBonus() {
+        List<String> resultado = new ArrayList<>();
+        for (TipoTesouro tipo : p().getOpcoesTesouroBonus()) resultado.add(tipo.name());
+        return Collections.unmodifiableList(resultado);
+    }
+    public void escolherCartaSecreta(int indice) {
+        String cor = getJogadorDaVez();
+        p().escolherCartaSecreta(CorJogador.valueOf(cor), indice);
+        notificar(EventoJogo.CARTA_SECRETA_ESCOLHIDA, cor);
+    }
+    public void escolherTesouroBonus(int indice) {
+        p().escolherTesouroBonus(indice);
+        notificar(EventoJogo.TESOURO_BONUS_ESCOLHIDO, getJogadorDaVez());
     }
 
     // ---- consultas ----
@@ -230,9 +294,50 @@ public class Jogo implements ObservadoIF {
     public int getIurtasDisponiveis(String cor) {
         return p().getJogador(CorJogador.valueOf(cor)).getIurtasDisponiveis();
     }
-    public int getCavalosIniciais(Coluna coluna) { return TabuleiroJogador.cavalosIniciais(coluna); }
-    public int getPunhosIniciais(Coluna coluna) { return TabuleiroJogador.punhosIniciais(coluna); }
-    public boolean isKhanInicial(Coluna coluna) { return TabuleiroJogador.khanInicial(coluna); }
+    public Herdeiro getHerdeiro(String cor) { return p().getHerdeiro(CorJogador.valueOf(cor)); }
+    public List<String> getPosicoesPeoes(String cor) {
+        return p().getPosicoesPeoes(CorJogador.valueOf(cor));
+    }
+    public boolean isEscolhaPeaoPendente() { return p().isEscolhaPeaoPendente(); }
+    public void escolherPeao(int indice) {
+        p().escolherPeao(indice);
+        notificar(EventoJogo.PEAO_ESCOLHIDO, Integer.toString(indice));
+    }
+    public List<Melhoria> getOpcoesIniciaisJochi() { return p().getOpcoesIniciaisJochi(); }
+    public void escolherMelhoriaInicialJochi(int indice) {
+        p().escolherMelhoriaInicialJochi(indice);
+        notificar(EventoJogo.MELHORIA_INICIAL_ESCOLHIDA, Integer.toString(indice));
+    }
+    public boolean isHabilidadeUsadaNoTurno() { return p().isHabilidadeUsadaNoTurno(); }
+    public void usarHabilidadeChagatai() {
+        p().usarHabilidadeChagatai();
+        concluirAcao(EventoJogo.HABILIDADE_USADA, "CHAGATAI");
+    }
+    public void usarHabilidadeOgedei(String cidadeId) {
+        p().usarHabilidadeOgedei(cidadeId);
+        concluirAcao(EventoJogo.HABILIDADE_USADA, cidadeId);
+    }
+    public int getCavalosIniciais(Coluna coluna) {
+        return getCavalosIniciais(getJogadorDaVez(), coluna);
+    }
+    public int getPunhosIniciais(Coluna coluna) {
+        return getPunhosIniciais(getJogadorDaVez(), coluna);
+    }
+    public boolean isKhanInicial(Coluna coluna) {
+        return isKhanInicial(getJogadorDaVez(), coluna);
+    }
+    public int getCavalosIniciais(String cor, Coluna coluna) {
+        return TabuleiroJogador.cavalosIniciais(getHerdeiro(cor), coluna);
+    }
+    public int getPunhosIniciais(String cor, Coluna coluna) {
+        return TabuleiroJogador.punhosIniciais(getHerdeiro(cor), coluna);
+    }
+    public int getMoedasIniciais(String cor, Coluna coluna) {
+        return TabuleiroJogador.moedasIniciais(getHerdeiro(cor), coluna);
+    }
+    public boolean isKhanInicial(String cor, Coluna coluna) {
+        return TabuleiroJogador.khanInicial(getHerdeiro(cor), coluna);
+    }
     public List<String> getProvincias() {
         List<String> ids = new ArrayList<>();
         for (Provincia p : p().getTabuleiro().getProvincias()) ids.add(p.getId());
@@ -285,7 +390,7 @@ public class Jogo implements ObservadoIF {
     public int getOcupacaoKurultai() { return p().getKurultai().getOcupacao(); }
     public int getLimiteKurultai() { return p().getKurultai().getLimite(); }
 
-    /** Votos do Kurultai somados aos votos de influência regional, na ordem dos turnos. */
+    /** Votos do Kurultai, influência regional e carta secreta, na ordem dos turnos. */
     public Map<String, Integer> getVotosFinais() {
         Map<CorJogador, Integer> total = p().votosFinais();
         Map<String, Integer> resultado = new LinkedHashMap<>();
@@ -322,6 +427,17 @@ public class Jogo implements ObservadoIF {
     }
 
     public boolean isMelhoriasExibidas() { return melhoriasExibidas; }
+
+    public void exibirCartas() {
+        cartasExibidas = true;
+        notificar(EventoJogo.CARTAS_EXIBIDAS, null);
+    }
+    public void ocultarCartas() {
+        if (!cartasExibidas) return;
+        cartasExibidas = false;
+        notificar(EventoJogo.CARTAS_OCULTADAS, null);
+    }
+    public boolean isCartasExibidas() { return cartasExibidas; }
 
     public List<String> getVencedores() {
         List<String> nomes = new ArrayList<>();
