@@ -206,5 +206,3 @@ public final class InterfaceSmoke {
         System.out.println("OK " + etapa);
     }
 }
-
-\n

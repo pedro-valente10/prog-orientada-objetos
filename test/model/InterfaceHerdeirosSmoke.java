@@ -128,5 +128,3 @@ public final class InterfaceHerdeirosSmoke {
                 System.currentTimeMillis(), 0, x, y, 1, false));
     }
 }
-
-\n

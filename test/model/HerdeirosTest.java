@@ -125,5 +125,3 @@ public class HerdeirosTest {
         assertEquals(2, ogedei.totalTesouros());
     }
 }
-
-\n
