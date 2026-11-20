@@ -1,6 +1,14 @@
-# Herdeiros do Khan — quarta iteração em desenvolvimento
+# Herdeiros do Khan — quarta iteração
 
-Projeto Swing/Java2D para Java 8. O histórico Git preserva a entrega anterior; esta pasta contém as alterações da quarta iteração e ainda não é o pacote final do Eclipse.
+Projeto Swing/Java2D para Java 8. A entrega Eclipse usa o nome 2411003-2510899-2510382 e inclui o arquivo leiame.txt com os integrantes e a classe principal.
+
+## Importar no Eclipse
+
+Use **File > Import > General > Existing Projects into Workspace > Select archive file** e escolha `2411003-2510899-2510382.zip`. O projeto importado deve se chamar `2411003-2510899-2510382`. Configure um JDK 8 se o Eclipse solicitar. A configuração `.classpath` usa JUnit 4.
+
+Para abrir o jogo, execute `src/controller/Main.java` como **Java Application**. Para os testes, execute `test/model/SuiteDeTestes.java` como **JUnit Test**.
+
+Depois que o link do vídeo estiver disponível, substitua `PENDENTE` em `leiame.txt` e execute `python exportar_eclipse.py` nesta pasta para recriar o ZIP antes do upload.
 
 ## Executar
 
@@ -23,11 +31,11 @@ Os botões **Coletar K1...P4** ficam claros apenas quando há punho, tributo dis
 
 ## Testes
 
-A suíte usa JUnit 4.13.2 e Hamcrest 1.3. Coloque esses JARs em `build/lib` se ainda não existirem:
+A suíte usa JUnit 4.13.2 e Hamcrest 1.3; os JARs estão incluídos em `lib`:
 
 ```powershell
 New-Item -ItemType Directory -Force build/classes | Out-Null
-$cp = 'build/classes;src;build/lib/junit-4.13.2.jar;build/lib/hamcrest-core-1.3.jar'
+$cp = 'build/classes;src;lib/junit-4.13.2.jar;lib/hamcrest-core-1.3.jar'
 $fontes = Get-ChildItem src,test -Recurse -Filter '*.java' | ForEach-Object FullName
 javac -source 8 -target 8 -encoding UTF-8 -cp $cp -d build/classes $fontes
 java '-Djava.awt.headless=true' -cp $cp org.junit.runner.JUnitCore model.SuiteDeTestes
@@ -38,8 +46,8 @@ foreach ($h in 'ALTANI','JOCHI','CHAGATAI','TOLUI','OGEDEI') {
 }
 ```
 
-Verificação em Java 8: **62/62 testes JUnit passaram**. O percurso `InterfaceSmoke` e os cinco cenários `InterfaceHerdeirosSmoke` passaram. Os testes cobrem salvamento e recuperação do turno, mapa, jogadores, nomes e carta secreta; ASCII; arquivo inválido; mapeamento de paradas e províncias; e habilitação dinâmica das ações. Os percursos de interface cobrem o ciclo principal, salvamento/recuperação pelo painel e a exibição do vencedor.
+Verificação em Java 8, inclusive a partir de uma cópia extraída do ZIP: **62/62 testes JUnit passaram**. O percurso `InterfaceSmoke` e os cinco cenários `InterfaceHerdeirosSmoke` passaram. Os testes cobrem salvamento e recuperação do turno, mapa, jogadores, nomes e carta secreta; ASCII; arquivo inválido; mapeamento de paradas e províncias; e habilitação dinâmica das ações. Os percursos de interface cobrem o ciclo principal, salvamento/recuperação pelo painel e a exibição do vencedor.
 
 ## Estado da quarta iteração
 
-Veja `REQUISITOS_4A_ITERACAO.md` para a matriz de requisitos e os itens de entrega. O mapa e as províncias ainda são uma transcrição aproximada da fotografia do tabuleiro. O ZIP da terceira iteração na pasta superior não inclui estas alterações; a exportação final do Eclipse ainda precisa ser feita com o nome de matrícula e o `leiame.txt` exigidos pelo professor.
+Veja `REQUISITOS_4A_ITERACAO.md` para a matriz de requisitos e os itens de entrega. O mapa e as províncias ainda são uma transcrição aproximada da fotografia do tabuleiro. O ZIP da terceira iteração na pasta superior não inclui estas alterações; use o ZIP `2411003-2510899-2510382.zip` para esta versão. O link do vídeo ainda deve ser incluído no `leiame.txt` antes do upload final.

@@ -1,0 +1,8 @@
+Integrantes do grupo:
+Gabriel Araujo - matricula 2411003
+Felipe Veeck - matricula 2510899
+Pedro Henrique Padilha - matricula 2510382
+
+Classe que contem o metodo main: controller.Main
+
+Link do video de apresentacao: PENDENTE (inserir o link antes da entrega).
