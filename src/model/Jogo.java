@@ -1,5 +1,8 @@
 package model;
 
+import java.io.IOException;
+import java.nio.file.Path;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -88,6 +91,21 @@ public class Jogo implements ObservadoIF {
         return partida;
     }
 
+    /** O estado so pode ser salvo entre turnos, antes da proxima coluna. */
+    public void salvar(Path arquivo) throws IOException {
+        PersistenciaPartida.salvar(arquivo, p());
+    }
+
+    /** Substitui a partida apenas depois de validar completamente o arquivo. */
+    public void recuperar(Path arquivo) throws IOException {
+        Partida recuperada = PersistenciaPartida.recuperar(arquivo);
+        partida = recuperada;
+        cartelaExibida = null;
+        melhoriasExibidas = false;
+        cartasExibidas = false;
+        notificar(EventoJogo.PARTIDA_RECUPERADA, getJogadorDaVez());
+    }
+
     // ---- Observer ----
     @Override public void add(ObservadorIF observador) {
         if (observador != null && !observadores.contains(observador)) observadores.add(observador);
@@ -128,6 +146,11 @@ public class Jogo implements ObservadoIF {
 
     // ---- turno ----
     public String getJogadorDaVez() { return p().jogadorDaVez().name(); }
+    public String getNomeJogador(String cor) { return p().getJogador(CorJogador.valueOf(cor)).getNome(); }
+    public void definirNomeJogador(String cor, String nome) {
+        p().getJogador(CorJogador.valueOf(cor)).setNome(nome);
+        notificar(EventoJogo.NOME_DEFINIDO, cor);
+    }
     public void ativarColuna(Coluna coluna) {
         p().ativarColuna(coluna);
         notificar(EventoJogo.COLUNA_ATIVADA, coluna.name());
@@ -145,6 +168,15 @@ public class Jogo implements ObservadoIF {
     public Coluna getColunaAtiva() { return p().getColunaAtiva(); }
     public int getMovimentosRestantes() { return p().getMovimentosRestantes(); }
     public int getPunhosRestantes() { return p().getPunhosRestantes(); }
+    public boolean podeEncerrarTurno() { return p().podeEncerrarTurno(); }
+    public boolean podePosicionarKhan(String local) { return p().podePosicionarKhan(local); }
+    public String getImpedimentoColeta(String provinciaId) { return p().impedimentoColeta(provinciaId); }
+    public String getImpedimentoIurta() { return p().impedimentoIurta(); }
+    public String getImpedimentoEntrega() { return p().impedimentoEntrega(); }
+    public String getImpedimentoAtaque(String cidadeId) { return p().impedimentoAtaque(cidadeId); }
+    public String getImpedimentoOgedei(String cidadeId) { return p().impedimentoOgedei(cidadeId); }
+    public boolean podeComprarMelhoria(int vaga) { return p().podeComprarMelhoria(vaga); }
+    public boolean podeSalvar() { return !p().isTurnoAtivo(); }
     public int getMoedasVirtuais() { return p().getMoedasVirtuais(); }
     public int getEspadasVirtuais() { return p().getEspadasVirtuais(); }
     public int getYurtsVirtuais() { return p().getYurtsVirtuais(); }

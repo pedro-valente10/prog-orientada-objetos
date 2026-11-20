@@ -29,7 +29,7 @@ class JanelaMelhorias extends JDialog implements ObservadorIF {
         if (evento == EventoJogo.MELHORIAS_EXIBIDAS) {
             setVisible(true);
             toFront();
-        } else if (evento == EventoJogo.MELHORIAS_OCULTADAS || evento == EventoJogo.PARTIDA_INICIADA) {
+        } else if (evento == EventoJogo.MELHORIAS_OCULTADAS || (evento == EventoJogo.PARTIDA_INICIADA || evento == EventoJogo.PARTIDA_RECUPERADA)) {
             setVisible(false);
         }
         painel.repaint();

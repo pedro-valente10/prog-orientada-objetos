@@ -14,9 +14,12 @@ import org.junit.runners.Suite;
     PontuacaoTest.class,
     SegundaIteracaoTest.class,
     TerceiraIteracaoTest.class,
+    QuartaIteracaoTest.class,
     CartasTest.class,
     HerdeirosTest.class,
-    view.PainelControleTest.class
+    view.PainelControleTest.class,
+    view.PainelTabuleiroTest.class,
+    view.PainelMelhoriasTest.class
 })
 public class SuiteDeTestes {
 }

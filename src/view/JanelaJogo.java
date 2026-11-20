@@ -7,20 +7,26 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.MouseListener;
 import java.awt.event.WindowListener;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.swing.JFrame;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import model.ConselheiroInfo;
 import model.Jogo;
+import model.ParadaInfo;
 import model.Coluna;
 
 /**
@@ -30,6 +36,7 @@ import model.Coluna;
 public class JanelaJogo extends JFrame {
     private static final long serialVersionUID = 1L;
 
+    private final Jogo jogo;
     private final PainelTabuleiro painelTabuleiro;
     private final PainelControle painelControle;
     private final JanelaCartela janelaCartela;
@@ -38,6 +45,7 @@ public class JanelaJogo extends JFrame {
 
     public JanelaJogo(Jogo jogo) {
         super("Herdeiros do Khan");
+        this.jogo = jogo;
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setResizable(false);
         painelTabuleiro = new PainelTabuleiro(jogo);
@@ -105,6 +113,49 @@ public class JanelaJogo extends JFrame {
                 Math.min(getY() + cartela.height, tela.y + tela.height - janelaCartas.getHeight())));
     }
 
+    /** Consulta permanente: os pedidos não precisam ser descobertos por tentativa de entrega. */
+    public void mostrarConselheiros() {
+        StringBuilder texto = new StringBuilder();
+        texto.append("C no mapa = parada com conselheiro.\n");
+        texto.append("Para entregar, pare ali no turno atual e tenha os tesouros.\n\n");
+        for (ParadaInfo parada : jogo.getParadas()) {
+            ConselheiroInfo conselheiro = parada.getConselheiro();
+            if (conselheiro != null)
+                texto.append(parada.getId()).append(" — ").append(conselheiro.descricao())
+                        .append(" → ").append(conselheiro.getVotos()).append(" voto(s)\n");
+        }
+        mostrarConsulta("Pedidos dos conselheiros", texto.toString());
+    }
+
+    /** Distingue os códigos de paradas dos códigos de províncias usados na coleta. */
+    public void mostrarAreas() {
+        StringBuilder texto = new StringBuilder();
+        texto.append("No MAPA: R = Rússia, P = Pérsia, C = China; são paradas.\n");
+        texto.append("Nos BOTÕES: K1–K4 = províncias Khan; P1–P4 = províncias comuns.\n");
+        texto.append("Exemplo: P1 no mapa (parada) não é Coletar P1 (província).\n");
+        texto.append("Visite uma parada adjacente, tenha um punho e use o botão claro.\n\n");
+        for (String id : jogo.getProvincias()) {
+            List<String> paradas = new ArrayList<>();
+            for (ParadaInfo parada : jogo.getParadas())
+                if (parada.getProvinciasAdjacentes().contains(id)) paradas.add(parada.getId());
+            texto.append(id).append(id.startsWith("K") ? " (Khan)" : " (comum)")
+                    .append(" — ").append(jogo.getTipoDaProvincia(id))
+                    .append(" x").append(jogo.getTributosDaProvincia(id))
+                    .append(" — paradas: ").append(String.join(", ", paradas)).append('\n');
+        }
+        mostrarConsulta("Áreas de coleta K/P", texto.toString());
+    }
+
+    private void mostrarConsulta(String titulo, String texto) {
+        JTextArea area = new JTextArea(texto, 16, 58);
+        area.setEditable(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setCaretPosition(0);
+        JOptionPane.showMessageDialog(this, new JScrollPane(area), titulo,
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
     // ---- diálogos ----
     /** Altani escolhe qual dos dois peões pode agir neste turno. */
     public int pedirPeao(List<String> posicoes) {
@@ -163,13 +214,46 @@ public class JanelaJogo extends JFrame {
         return escolha == null ? -1 : opcoes.indexOf(escolha.toString());
     }
 
+    /** Escolha livre de nome e pasta, limitada a arquivos .txt. */
+    public File escolherArquivoParaSalvar() {
+        JFileChooser seletor = novoSeletor();
+        if (seletor.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return null;
+        File arquivo = seletor.getSelectedFile();
+        if (!arquivo.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".txt"))
+            arquivo = new File(arquivo.getParentFile(), arquivo.getName() + ".txt");
+        if (arquivo.exists() && JOptionPane.showConfirmDialog(this,
+                "Substituir " + arquivo.getName() + "?", "Salvar partida",
+                JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return null;
+        return arquivo;
+    }
+
+    public File escolherArquivoParaRecuperar() {
+        JFileChooser seletor = novoSeletor();
+        return seletor.showOpenDialog(this) == JFileChooser.APPROVE_OPTION
+                ? seletor.getSelectedFile() : null;
+    }
+
+    private JFileChooser novoSeletor() {
+        JFileChooser seletor = new JFileChooser();
+        seletor.setFileFilter(new FileNameExtensionFilter("Partidas em texto (*.txt)", "txt"));
+        seletor.setAcceptAllFileFilterUsed(false);
+        return seletor;
+    }
+
+    public boolean perguntarNovaPartida() {
+        return JOptionPane.showConfirmDialog(this, "Iniciar uma nova partida?",
+                "Fim de jogo", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE)
+                == JOptionPane.YES_OPTION;
+    }
     public void mostrarFimDeJogo(List<String> vencedores, Map<String, Integer> votos) {
         StringBuilder texto = new StringBuilder("A partida terminou.\n\nVotos finais:\n");
         for (Map.Entry<String, Integer> e : votos.entrySet())
-            texto.append("  ").append(e.getKey()).append(": ").append(e.getValue()).append("\n");
+            texto.append("  ").append(jogo.getNomeJogador(e.getKey()))
+                    .append(" [").append(e.getKey()).append("]: ")
+                    .append(e.getValue()).append("\n");
         texto.append("\nVencedor(es): ");
         for (int i = 0; i < vencedores.size(); i++)
-            texto.append(i > 0 ? ", " : "").append(vencedores.get(i));
+            texto.append(i > 0 ? ", " : "").append(jogo.getNomeJogador(vencedores.get(i)));
         JOptionPane.showMessageDialog(this, texto.toString(), "Fim de jogo", JOptionPane.INFORMATION_MESSAGE);
     }
 }

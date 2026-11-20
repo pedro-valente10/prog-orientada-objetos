@@ -23,7 +23,7 @@ class JanelaCartas extends JDialog implements ObservadorIF {
     @Override public void notify(ObservadoIF observado) {
         EventoJogo evento = (EventoJogo) observado.get(Jogo.INFO_EVENTO);
         if (evento == EventoJogo.CARTAS_EXIBIDAS) { setVisible(true); toFront(); }
-        else if (evento == EventoJogo.CARTAS_OCULTADAS || evento == EventoJogo.PARTIDA_INICIADA)
+        else if (evento == EventoJogo.CARTAS_OCULTADAS || (evento == EventoJogo.PARTIDA_INICIADA || evento == EventoJogo.PARTIDA_RECUPERADA))
             setVisible(false);
         painel.repaint();
     }

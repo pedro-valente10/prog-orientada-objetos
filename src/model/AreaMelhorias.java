@@ -8,7 +8,8 @@ import java.util.List;
 import java.util.Random;
 
 /** Oferta de cinco peças identificáveis e pilha finita de 44 melhorias. */
-class AreaMelhorias {
+class AreaMelhorias implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     static final int VAGAS = 5;
     static final int VAGA_ICONE_MOEDA = 0;
     static final int VAGA_ICONE_ESPADA = 1;

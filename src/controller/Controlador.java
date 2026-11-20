@@ -4,6 +4,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import model.Coluna;
@@ -51,7 +53,7 @@ public class Controlador {
         janela.setVisible(true);
         janela.posicionarJanelas();
         jogo.exibirCartela(jogo.getJogadorDaVez());
-        jogo.exibirCartas();
+        if (jogo.getCartaSecreta(jogo.getJogadorDaVez()) == null) jogo.exibirCartas();
         janela.mostrarMensagem("Vez de " + jogo.getJogadorDaVez() + ". " + proximoPasso());
     }
 
@@ -67,6 +69,10 @@ public class Controlador {
             } else if ("CARTELA".equals(operacao)) {
                 String cor = jogo.getCartelaExibida();
                 jogo.exibirCartela(cor == null ? jogo.getJogadorDaVez() : cor);
+            } else if ("CONSELHEIROS".equals(operacao)) {
+                janela.mostrarConselheiros();
+            } else if ("AREAS".equals(operacao)) {
+                janela.mostrarAreas();
             } else if ("MELHORIAS".equals(operacao)) {
                 jogo.exibirMelhorias();
             } else if ("CARTAS".equals(operacao)) {
@@ -102,6 +108,24 @@ public class Controlador {
                 jogo.encerrarTurno();
                 definirModo(Modo.MOVER);
                 concluir("Turno encerrado. Vez de " + jogo.getJogadorDaVez() + ".");
+            } else if ("SALVAR".equals(operacao)) {
+                File arquivo = janela.escolherArquivoParaSalvar();
+                if (arquivo != null) {
+                    jogo.salvar(arquivo.toPath());
+                    janela.mostrarMensagem("Partida salva em " + arquivo.getAbsolutePath() + ".");
+                }
+            } else if ("RECUPERAR".equals(operacao)) {
+                File arquivo = janela.escolherArquivoParaRecuperar();
+                if (arquivo != null) {
+                    jogo.recuperar(arquivo.toPath());
+                    definirModo(Modo.MOVER);
+                    fimAcionadoAvisado = jogo.isFimAcionado();
+                    fimDeJogoExibido = false;
+                    jogo.exibirCartela(jogo.getJogadorDaVez());
+                    if (jogo.getCartaSecreta(jogo.getJogadorDaVez()) == null) jogo.exibirCartas();
+                    janela.mostrarMensagem("Partida recuperada. Vez de "
+                            + jogo.getJogadorDaVez() + ". " + proximoPasso());
+                }
             } else if ("YURT".equals(operacao)) {
                 alternarModo(Modo.YURT, "Clique em uma parada visitada para construir a yurt.");
             } else if ("ENTREGAR".equals(operacao)) {
@@ -124,7 +148,7 @@ public class Controlador {
                     concluir("Um tesouro retirado de " + argumento + ".");
                 }
             }
-        } catch (RegraInvalidaException e) {
+        } catch (RegraInvalidaException | IOException e) {
             janela.mostrarMensagem(e.getMessage());
         }
     }
@@ -225,6 +249,17 @@ public class Controlador {
         if (jogo.isJogoEncerrado() && !fimDeJogoExibido) {
             fimDeJogoExibido = true;
             janela.mostrarFimDeJogo(jogo.getVencedores(), jogo.getVotosFinais());
+            if (janela.perguntarNovaPartida() && Main.escolherNovaPartida(jogo, janela)) {
+                fimAcionadoAvisado = false;
+                fimDeJogoExibido = false;
+                definirModo(Modo.MOVER);
+                jogo.exibirCartela(jogo.getJogadorDaVez());
+                jogo.exibirCartas();
+                janela.mostrarMensagem("Nova partida. Vez de " + jogo.getJogadorDaVez()
+                        + ". " + proximoPasso());
+            } else {
+                janela.dispose();
+            }
         }
     }
 

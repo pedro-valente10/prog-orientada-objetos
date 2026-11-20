@@ -12,7 +12,8 @@ import java.util.Random;
 import java.util.Set;
 
 /** Cartas e peças de bônus do manual. A identidade é estável durante a partida. */
-final class Cartas {
+final class Cartas implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     enum Aberta {
         ESPADAS_4("Ter 4 espadas"), IURTAS_6("Ter 6 iurtas no mapa"),
         IURTAS_10("Ter 10 iurtas no mapa"), TESOUROS_4("Ter 4 tesouros"),

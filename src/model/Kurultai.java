@@ -9,7 +9,8 @@ import java.util.Map;
  * Quando a ocupação atinge o limite (10/14/16/17 votos para 2/3/4/5 jogadores)
  * o fim do jogo é acionado.
  */
-class Kurultai {
+class Kurultai implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private static final Map<Integer, Integer> LIMITES = new HashMap<>();
     static {

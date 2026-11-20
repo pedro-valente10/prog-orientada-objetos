@@ -1,7 +1,8 @@
 package model;
 
 /** Peça física de melhoria. A identidade permanece a mesma na pilha, oferta e tabuleiro. */
-public final class Melhoria {
+public final class Melhoria implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     public enum Tipo { MOEDA, ESPADA, YURT, TESOURO, PUNHO, CAVALOS }
 
     private final int id;

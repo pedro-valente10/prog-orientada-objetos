@@ -4,7 +4,8 @@ package model;
  * Peão do Khan. Começa fora do tabuleiro; a cada uso precisa ir para um local
  * diferente do atual (uma das 4 províncias Khan ou a área de melhorias).
  */
-class Khan {
+class Khan implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     static final String AREA_MELHORIAS = "MELHORIAS";
 

@@ -38,7 +38,7 @@ class JanelaCartela extends JDialog implements ObservadorIF {
         if (evento == EventoJogo.CARTELA_EXIBIDA) {
             setVisible(true);
             toFront();
-        } else if (evento == EventoJogo.CARTELA_OCULTADA || evento == EventoJogo.PARTIDA_INICIADA) {
+        } else if (evento == EventoJogo.CARTELA_OCULTADA || (evento == EventoJogo.PARTIDA_INICIADA || evento == EventoJogo.PARTIDA_RECUPERADA)) {
             setVisible(false);
         }
         painel.repaint();

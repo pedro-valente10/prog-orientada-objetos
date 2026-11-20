@@ -9,7 +9,8 @@ import java.util.List;
  * Uma província "Khan" pode receber o peão do Khan e, quando isso acontece,
  * ela e mais 2 províncias adjacentes recebem 1 tributo cada.
  */
-class Provincia {
+class Provincia implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     /** Máximo de peças de tributo que cabem em uma província. */
     static final int MAX_TRIBUTOS = 3;

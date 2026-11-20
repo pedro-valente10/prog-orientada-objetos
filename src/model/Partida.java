@@ -20,7 +20,8 @@ import java.util.Set;
  * uso do Khan, ataque/conquista de cidades, compra de melhorias, entrega a conselheiros,
  * votos no Kurultai, fim de jogo, influência regional e desempate.
  */
-class Partida {
+class Partida implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private static final int TESOUROS_POR_TIPO = 8;
     private static final int TESOUROS_POR_CIDADE = 4;
@@ -387,12 +388,11 @@ class Partida {
     }
 
     // ---------------------------------------------------------------- tributos e iurtas
-    /** Pega 1 tributo de uma província adjacente a uma parada visitada neste turno (gasta 1 punho). */
-    void coletarTributo(String provinciaId) {
-        exigirTurnoAtivo();
-        if (punhosRestantes <= 0) {
-            throw new RegraInvalidaException("Sem ações de coletar tributo.");
-        }
+    /** Motivo da indisponibilidade, ou null quando a coleta pode ser feita agora. */
+    String impedimentoColeta(String provinciaId) {
+        if (jogoEncerrado) return "O jogo já terminou.";
+        if (!turnoAtivo) return "Nenhum turno em andamento.";
+        if (punhosRestantes <= 0) return "Sem ações de coletar tributo.";
         Provincia provincia = tabuleiro.getProvincia(provinciaId);
         boolean adjacente = false;
         for (String idParada : paradasVisitadas) {
@@ -401,12 +401,71 @@ class Partida {
                 break;
             }
         }
-        if (!adjacente) {
-            throw new RegraInvalidaException("Província não adjacente às paradas visitadas.");
+        if (!adjacente) return "Província não adjacente às paradas visitadas.";
+        if (provincia.getTributos() == 0) return "A província está vazia.";
+        return null;
+    }
+
+    boolean podeEncerrarTurno() {
+        return turnoAtivo && !jogoEncerrado && !khanPendente && escolhaTesouroBonus.isEmpty()
+                && jogadorAtual().getTabuleiroIndividual().bonusBrancosPendentes() == 0;
+    }
+
+    boolean podePosicionarKhan(String local) {
+        return turnoAtivo && !jogoEncerrado && (!turnoDeColuna || khanPendente)
+                && !local.equals(khan.getLocal());
+    }
+
+    /** Motivo pelo qual nenhuma iurta pode ser construída agora. */
+    String impedimentoIurta() {
+        if (!turnoAtivo || jogoEncerrado) return "Ative uma coluna primeiro.";
+        Jogador jogador = jogadorAtual();
+        if (jogador.getIurtasDisponiveis() == 0) return "Sem iurtas disponíveis.";
+        if (jogador.quantidadeTributo(TipoTributo.IURTA) + yurtsVirtuais < 1)
+            return "Falta tributo de iurta.";
+        for (Parada parada : tabuleiro.getParadas()) {
+            boolean visitada = paradasVisitadas.contains(parada.getId());
+            boolean tolui = jogador.getHerdeiro() == Herdeiro.TOLUI
+                    && tabuleiro.getParada(jogador.getPosicao()).getVizinhas().contains(parada.getId());
+            if ((visitada || tolui) && parada.podeReceberIurta()) return null;
         }
-        if (!provincia.retirarTributo()) {
-            throw new RegraInvalidaException("A província está vazia.");
+        return "Nenhuma parada disponível para iurta.";
+    }
+
+    /** Motivo pelo qual nenhuma entrega pode ser efetuada agora. */
+    String impedimentoEntrega() {
+        if (!turnoAtivo || jogoEncerrado) return "Ative uma coluna primeiro.";
+        boolean conselheiroVisitado = false;
+        for (String id : paradasVisitadas) {
+            Conselheiro conselheiro = tabuleiro.getParada(id).getConselheiro();
+            if (conselheiro == null) continue;
+            conselheiroVisitado = true;
+            Map<TipoTesouro, Integer> fixa = conselheiro.getExigenciaFixa();
+            if (fixa == null) {
+                int total = 0;
+                for (TipoTesouro tipo : TipoTesouro.values())
+                    total += jogadorAtual().quantidadeTesouro(tipo)
+                            + tesourosVirtuais.getOrDefault(tipo, 0);
+                if (total >= conselheiro.getQuantidadeQualquer()) return null;
+            } else {
+                boolean suficiente = true;
+                for (Map.Entry<TipoTesouro, Integer> pedido : fixa.entrySet())
+                    if (jogadorAtual().quantidadeTesouro(pedido.getKey())
+                            + tesourosVirtuais.getOrDefault(pedido.getKey(), 0) < pedido.getValue())
+                        suficiente = false;
+                if (suficiente) return null;
+            }
         }
+        return conselheiroVisitado ? "Faltam os tesouros pedidos."
+                : "Visite uma parada com conselheiro.";
+    }
+
+    /** Pega 1 tributo de uma província adjacente a uma parada visitada neste turno (gasta 1 punho). */
+    void coletarTributo(String provinciaId) {
+        String impedimento = impedimentoColeta(provinciaId);
+        if (impedimento != null) throw new RegraInvalidaException(impedimento);
+        Provincia provincia = tabuleiro.getProvincia(provinciaId);
+        provincia.retirarTributo();
         jogadorAtual().adicionarTributo(provincia.getTipo(), 1);
         punhosRestantes--;
     }
@@ -469,6 +528,48 @@ class Partida {
     }
 
     // ---------------------------------------------------------------- cidades
+    /** Consulta a possibilidade de retirar o próximo tesouro da cidade. */
+    String impedimentoAtaque(String cidadeId) {
+        if (!turnoAtivo || jogoEncerrado) return "Ative uma coluna primeiro.";
+        Cidade cidade = tabuleiro.getCidade(cidadeId);
+        if (cidade.isConquistada() || cidade.estaVazia()) return "Cidade sem tesouros.";
+        boolean adjacente = false;
+        for (String parada : cidade.getParadasAdjacentes())
+            if (paradasVisitadas.contains(parada)) adjacente = true;
+        if (!adjacente) return "Pare ao lado da cidade.";
+        int retirados = tesourosRetiradosNoTurno.getOrDefault(cidadeId, 0);
+        boolean desconto = descontoOgedei && cidadeId.equals(cidadeOgedei) && retirados == 1;
+        int custo = retirados == 0 || desconto ? 1 : 2;
+        if (jogadorAtual().quantidadeTributo(TipoTributo.ESPADA) + espadasVirtuais < custo)
+            return "Faltam " + custo + " espada(s).";
+        return null;
+    }
+
+    String impedimentoOgedei(String cidadeId) {
+        if (!turnoAtivo || jogoEncerrado || jogadorAtual().getHerdeiro() != Herdeiro.OGEDEI
+                || habilidadeUsadaNoTurno) return "Habilidade indisponível.";
+        Cidade cidade = tabuleiro.getCidade(cidadeId);
+        if (cidade.isConquistada() || cidade.quantidadeTesouros() < 2)
+            return "Cidade precisa ter 2 tesouros.";
+        if (jogadorAtual().quantidadeTributo(TipoTributo.MOEDA) + moedasVirtuais < 1)
+            return "Falta uma moeda.";
+        return null;
+    }
+
+    boolean podeComprarMelhoria(int vaga) {
+        if (!turnoAtivo || jogoEncerrado || vaga < -1 || vaga >= AreaMelhorias.VAGAS) return false;
+        Melhoria peca;
+        try { peca = vaga < 0 ? area.consultarTopo() : area.consultar(vaga); }
+        catch (RegraInvalidaException e) { return false; }
+        TabuleiroJogador individual = jogadorAtual().getTabuleiroIndividual();
+        if (individual.bonusBrancosPendentes() > 0) return individual.temEspaco(Coluna.BRANCA);
+        if (jogadorAtual().quantidadeTributo(TipoTributo.MOEDA) + moedasVirtuais < Jogador.CUSTO_MELHORIA)
+            return false;
+        if (jogadorAtual().getHerdeiro() == Herdeiro.JOCHI)
+            for (Coluna coluna : Coluna.values()) if (individual.temEspaco(coluna)) return true;
+        return individual.temEspaco(Coluna.valueOf(peca.getCor()));
+    }
+
     /**
      * Saqueia "quantidade" tesouros de uma cidade adjacente a uma parada visitada.
      * O 1º tesouro tirado da cidade no turno custa 1 espada; cada seguinte custa 2.

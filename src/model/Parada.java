@@ -10,7 +10,8 @@ import java.util.Set;
  * Parada: ponto da rota onde os peões se movem. Pode ser simples (1 peão, 1 iurta),
  * dupla (2 peões, 2 iurtas, tem conselheiro) ou Karakorum (todos os peões, sem iurtas).
  */
-class Parada {
+class Parada implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private final String id;
     private final Regiao regiao;      // null em Karakorum

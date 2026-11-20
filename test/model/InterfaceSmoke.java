@@ -25,6 +25,7 @@ import view.JanelaJogo;
 public final class InterfaceSmoke {
     private static JanelaJogo janela;
     private static Jogo jogo;
+    private static File arquivoSalvo;
 
     public static void main(String[] args) throws Exception {
         SwingUtilities.invokeAndWait(new Runnable() {
@@ -34,6 +35,9 @@ public final class InterfaceSmoke {
 
     private static void executar() {
         jogo = Jogo.getInstance(); jogo.novaPartida(3, 7L);
+        arquivoSalvo = new File("build/smoke-partida.txt");
+        if (arquivoSalvo.exists() && !arquivoSalvo.delete())
+            throw new AssertionError("Arquivo de teste ocupado.");
         // Cenário de integração: uma melhoria de punho e recursos para exercitar todas as ações.
         Partida p = partida();
         Jogador j = p.getJogador(CorJogador.VERMELHO);
@@ -57,6 +61,8 @@ public final class InterfaceSmoke {
                 return oferta;
             }
             @Override public int pedirTesouroBonus(List<String> opcoes) { return 0; }
+            @Override public File escolherArquivoParaSalvar() { return arquivoSalvo; }
+            @Override public File escolherArquivoParaRecuperar() { return arquivoSalvo; }
             @Override public void mostrarFimDeJogo(List<String> v, Map<String,Integer> pontos) { }
         };
         new Controlador(jogo, janela).iniciar();
@@ -116,8 +122,15 @@ public final class InterfaceSmoke {
         exigir(jogo.getVotos("VERMELHO") >= 1, "entrega e votos");
         clicar(controle(), 67, 283); // encerrar
         exigir("AZUL".equals(jogo.getJogadorDaVez()), "encerrar turno");
+        clicar(controle(), 67, 577); // Salvar entre turnos
+        exigir(arquivoSalvo.isFile(), "salvar pelo painel");
+        jogo.novaPartida(2, 999L);
+        clicar(controle(), 182, 577); // Recuperar
+        exigir(jogo.getJogadores().size() == 3 && "AZUL".equals(jogo.getJogadorDaVez())
+                && "C9".equals(jogo.getPosicao("VERMELHO")), "recuperar pelo painel");
+        if (!arquivoSalvo.delete()) throw new AssertionError("Não foi possível limpar o teste.");
         System.out.println("OK: carta, coluna, movimento, tributo, Khan, melhoria, iurta, "
-                + "4 ataques (1+2+2+2 espadas), conquista, entrega, votos e fim do turno");
+                + "4 ataques (1+2+2+2 espadas), conquista, entrega, votos, fim do turno e salvamento");
         janela.dispose();
         for (Window w : Window.getWindows()) if (w.isDisplayable()) w.dispose();
     }
@@ -156,8 +169,10 @@ public final class InterfaceSmoke {
         int i=0;
         for (String cidade : jogo.getCidadesReveladas()) {
             int x=14+i*115+53;
-            exigir(x < c.getWidth() && ("ATAQUE:"+cidade).equals(janela.acaoEm(x,479)),
-                    "botão visível para " + cidade);
+            String alvo = janela.acaoEm(x, 479);
+            exigir(x < c.getWidth() && (jogo.getImpedimentoAtaque(cidade) == null
+                    ? ("ATAQUE:" + cidade).equals(alvo) : alvo == null),
+                    "estado do botão de " + cidade);
             i++;
         }
     }

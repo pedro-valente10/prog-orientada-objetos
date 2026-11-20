@@ -1,6 +1,8 @@
 package view;
 
 import java.awt.Color;
+import java.awt.AlphaComposite;
+import java.awt.Composite;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -49,6 +51,9 @@ class PainelMelhorias extends JPanel {
         for (int i = 0; i < oferta.size(); i++) {
             int x = 14 + i * 92;
             Melhoria peca = oferta.get(i);
+            boolean compravel = peca != null && jogo.podeComprarMelhoria(i);
+            Composite original = d.getComposite();
+            if (!compravel) d.setComposite(AlphaComposite.SrcOver.derive(.38f));
             d.setColor(peca == null ? new Color(78, 83, 94) : Figuras.corColuna(Coluna.valueOf(peca.getCor())));
             d.fillRoundRect(x, 30, 86, 71, 9, 9);
             d.setColor(new Color(24, 29, 40));
@@ -58,16 +63,20 @@ class PainelMelhorias extends JPanel {
                 d.setFont(new Font("SansSerif", Font.PLAIN, 10));
                 d.drawString(peca.getCor(), x + 6, 75);
                 d.drawString("#" + peca.getId(), x + 6, 91);
-                alvos.add(new Alvo("MELHORIA:" + i, new Rectangle(x, 30, 86, 71)));
+                if (compravel) alvos.add(new Alvo("MELHORIA:" + i, new Rectangle(x, 30, 86, 71)));
             }
+            d.setComposite(original);
         }
-        boolean haPilha = jogo.getMelhoriasNaPilha() > 0;
-        d.setColor(haPilha ? new Color(83, 115, 151) : new Color(72, 76, 85));
+        boolean haPilha = jogo.podeComprarMelhoria(-1);
+        Composite originalTopo = d.getComposite();
+        if (!haPilha) d.setComposite(AlphaComposite.SrcOver.derive(.38f));
+        d.setColor(new Color(83, 115, 151));
         d.fillRoundRect(14, 110, 220, 30, 8, 8);
         d.setColor(Color.WHITE);
         d.setFont(new Font("SansSerif", Font.BOLD, 11));
         d.drawString("Comprar o topo da pilha", 24, 129);
         if (haPilha) alvos.add(new Alvo("MELHORIA:-1", new Rectangle(14, 110, 220, 30)));
+        d.setComposite(originalTopo);
         d.setColor(new Color(180, 194, 217));
         d.setFont(new Font("SansSerif", Font.PLAIN, 11));
         d.drawString("Pilha: " + jogo.getMelhoriasNaPilha() + " peças", 246, 129);

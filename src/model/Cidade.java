@@ -8,7 +8,8 @@ import java.util.List;
 import java.util.Set;
 
 /** Cidade: fonte de tesouros que podem ser saqueados com espadas. */
-class Cidade {
+class Cidade implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private final String id;
     private final Regiao regiao;

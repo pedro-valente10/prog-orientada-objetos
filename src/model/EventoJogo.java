@@ -3,6 +3,8 @@ package model;
 /** Tipos de mudança de estado de uma partida que o Model comunica aos observadores. */
 public enum EventoJogo {
     PARTIDA_INICIADA,
+    PARTIDA_RECUPERADA,
+    NOME_DEFINIDO,
     COLUNA_ATIVADA,
     TURNO_ENCERRADO,
     PEAO_MOVIDO,

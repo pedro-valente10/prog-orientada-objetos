@@ -7,6 +7,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.event.MouseEvent;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -42,6 +43,7 @@ class PainelTabuleiro extends JPanel implements ObservadorIF {
     PainelTabuleiro(Jogo jogo) {
         this.jogo = jogo;
         setPreferredSize(new Dimension(LARGURA, ALTURA));
+        setToolTipText(" ");
         try {
             java.io.InputStream entrada = PainelTabuleiro.class.getResourceAsStream("img/tabuleiro.jpg");
             if (entrada == null) throw new IOException("Recurso ausente.");
@@ -88,6 +90,27 @@ class PainelTabuleiro extends JPanel implements ObservadorIF {
             }
         }
         return maisProxima == null ? null : maisProxima.getId();
+    }
+
+    @Override public String getToolTipText(MouseEvent evento) {
+        String id = paradaEm(evento.getX(), evento.getY());
+        if (id == null) return null;
+        for (ParadaInfo parada : paradas) {
+            if (!id.equals(parada.getId())) continue;
+            StringBuilder dica = new StringBuilder("<html>");
+            if (parada.isKarakorum()) dica.append("Karakorum (capital)");
+            else dica.append("Parada ").append(id).append(" (")
+                    .append(id.startsWith("R") ? "Rússia" : id.startsWith("C") ? "China" : "Pérsia")
+                    .append(")");
+            if (!parada.getProvinciasAdjacentes().isEmpty())
+                dica.append("<br>Coleta nas províncias: ")
+                        .append(String.join(", ", parada.getProvinciasAdjacentes()));
+            if (parada.getConselheiro() != null)
+                dica.append("<br>Conselheiro: ").append(parada.getConselheiro().descricao())
+                        .append(" → ").append(parada.getConselheiro().getVotos()).append(" voto(s)");
+            return dica.append("</html>").toString();
+        }
+        return null;
     }
 
     @Override protected void paintComponent(Graphics g) {

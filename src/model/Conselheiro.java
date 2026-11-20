@@ -11,7 +11,8 @@ import java.util.Map;
  *  - 3 tesouros quaisquer (1 voto);
  *  - 3 tesouros específicos, como em Karakorum (2 votos).
  */
-class Conselheiro {
+class Conselheiro implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private final String id;
     /** Exigência fixa (tipo -> quantidade). Se null, vale "qualquer combinação". */

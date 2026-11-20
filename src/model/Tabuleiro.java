@@ -14,7 +14,8 @@ import java.util.Queue;
 import java.util.Set;
 
 /** Tabuleiro: grafo de paradas + províncias + cidades. Não conhece jogadores nem turnos. */
-class Tabuleiro {
+class Tabuleiro implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     static final String KARAKORUM = "KARAKORUM";
 

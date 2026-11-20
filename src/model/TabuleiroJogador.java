@@ -6,7 +6,8 @@ import java.util.Collections;
 import java.util.List;
 
 /** Quatro fichas de ativação e quatro espaços de melhoria por coluna. */
-class TabuleiroJogador {
+class TabuleiroJogador implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     static final int LINHAS = 4;
     private static final int[] CAVALOS_INICIAIS = { 2, 2, 2, 2 };
     private static final int[] PUNHOS_INICIAIS = { 0, 1, 0, 0 };

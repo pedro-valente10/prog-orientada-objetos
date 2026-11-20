@@ -7,13 +7,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /** Jogador: guarda recursos (tributos e tesouros), iurtas disponíveis e melhorias. */
-class Jogador {
+class Jogador implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     static final int MAX_IURTAS = 12;
     static final int CUSTO_MELHORIA = 2; // moedas
 
     private final CorJogador cor;
     private final Herdeiro herdeiro;
+    private String nome;
     private final Map<TipoTributo, Integer> tributos = new HashMap<>();
     private final Map<TipoTesouro, Integer> tesouros = new HashMap<>();
     private final TabuleiroJogador tabuleiroIndividual;
@@ -26,6 +28,7 @@ class Jogador {
     Jogador(CorJogador cor, Herdeiro herdeiro, String posicaoInicial) {
         this.cor = cor;
         this.herdeiro = herdeiro;
+        this.nome = cor.name();
         this.tabuleiroIndividual = new TabuleiroJogador(herdeiro);
         posicoes.add(posicaoInicial);
         if (herdeiro == Herdeiro.ALTANI) posicoes.add(posicaoInicial);
@@ -34,6 +37,12 @@ class Jogador {
 
     CorJogador getCor() { return cor; }
     Herdeiro getHerdeiro() { return herdeiro; }
+    String getNome() { return nome; }
+    void setNome(String novoNome) {
+        if (novoNome == null || novoNome.trim().isEmpty())
+            throw new RegraInvalidaException("Informe o nome do jogador.");
+        nome = novoNome.trim();
+    }
     String getPosicao() { return posicoes.get(peaoAtivo); }
     List<String> getPosicoes() { return Collections.unmodifiableList(posicoes); }
     int getPeaoAtivo() { return peaoAtivo; }

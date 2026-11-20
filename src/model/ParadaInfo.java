@@ -11,6 +11,7 @@ public final class ParadaInfo {
     private final double x, y;
     private final boolean dupla, karakorum;
     private final List<String> vizinhas;
+    private final List<String> provinciasAdjacentes;
     private final List<String> peoes;
     private final List<String> iurtas;
     private final ConselheiroInfo conselheiro;
@@ -22,6 +23,7 @@ public final class ParadaInfo {
         dupla = parada.isDupla();
         karakorum = parada.isKarakorum();
         vizinhas = copiarOrdenado(parada.getVizinhas());
+        provinciasAdjacentes = copiarOrdenado(parada.getProvinciasAdjacentes());
         peoes = new ArrayList<>();
         iurtas = new ArrayList<>();
         for (CorJogador cor : parada.getPeoes()) peoes.add(cor.name());
@@ -41,6 +43,8 @@ public final class ParadaInfo {
     public boolean isDupla() { return dupla; }
     public boolean isKarakorum() { return karakorum; }
     public List<String> getVizinhas() { return vizinhas; }
+    /** Provincias que podem ser coletadas depois de visitar esta parada. */
+    public List<String> getProvinciasAdjacentes() { return provinciasAdjacentes; }
     public List<String> getPeoes() { return Collections.unmodifiableList(peoes); }
     public List<String> getIurtas() { return Collections.unmodifiableList(iurtas); }
     /** Conselheiro desta parada, ou null se não houver. */
